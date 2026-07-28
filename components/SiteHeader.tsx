@@ -6,24 +6,19 @@ export function SiteHeader() {
       <Link href="/" className="brand-mark">
         <span className="brand-badge" aria-hidden="true" />
         <span>
-          <span className="brand-title">Lao Safe</span>
-          <span className="brand-caption">
-            라오스 전화번호·계좌번호 공개 조회 서비스
-          </span>
+          <span className="brand-title">Lao Scam Number</span>
+          <span className="brand-caption">라오스 전화번호·계좌번호 조회</span>
         </span>
       </Link>
       <nav className="site-nav" aria-label="주요 메뉴">
-        <Link className="nav-link" href="/">
-          검색
-        </Link>
         <Link className="nav-link" href="/recent">
-          최근 등록
+          최근 신고
+        </Link>
+        <Link className="nav-link" href="/report-guide">
+          신고 안내
         </Link>
         <Link className="nav-link" href="/guide">
-          이용안내
-        </Link>
-        <Link className="nav-link" href="/admin">
-          관리자 미리보기
+          이용 안내
         </Link>
       </nav>
     </header>

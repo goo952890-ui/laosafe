@@ -1,21 +1,28 @@
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { abuseSignals, deletionRequests } from "@/lib/site-data";
-import { getRecentTargets } from "@/lib/site-utils";
+import { getAbuseSignals, getDeletionRequests, getRecentTargets } from "@/lib/site-repository";
 
-export default function AdminPage() {
-  const recent = getRecentTargets().slice(0, 4);
+export default async function AdminPage() {
+  const [recent, deletionRequests, abuseSignals] = await Promise.all([
+    getRecentTargets().then((items) => items.slice(0, 4)),
+    getDeletionRequests(),
+    Promise.resolve(getAbuseSignals()),
+  ]);
 
   return (
     <main className="page-shell">
       <SiteHeader />
-      <section className="admin-layout">
-        <article className="surface-card">
-          <div className="eyebrow">운영 필수 관리자 화면</div>
-          <h1 className="section-title">평가 검토와 삭제 요청 처리</h1>
+      <section className="subpage-section">
+        <div className="subpage-heading">
+          <h1 className="subpage-title">평가 검토와 삭제 요청 처리</h1>
           <p className="section-copy">
             로그인된 운영자는 최근 평가, 삭제 요청, 반복 신고 패턴을 확인하고 의견 숨김/삭제,
             요청 상태 변경, IP 차단 등의 조치를 수행할 수 있습니다.
           </p>
+        </div>
+      </section>
+      <section className="admin-layout">
+        <article className="board-section">
 
           <div className="admin-list">
             {recent.map(({ target, latest }) => (
@@ -38,9 +45,11 @@ export default function AdminPage() {
           </div>
         </article>
 
-        <div className="field-stack">
-          <section className="surface-card">
-            <h2 className="section-title">삭제 요청</h2>
+        <div className="side-stack">
+          <section className="board-section">
+            <div className="board-header">
+              <h2 className="board-title">삭제 요청</h2>
+            </div>
             <div className="admin-list">
               {deletionRequests.map((request) => (
                 <div className="admin-card" key={request.id}>
@@ -55,8 +64,10 @@ export default function AdminPage() {
             </div>
           </section>
 
-          <section className="surface-card">
-            <h2 className="section-title">반복 신고 신호</h2>
+          <section className="board-section">
+            <div className="board-header">
+              <h2 className="board-title">반복 신고 신호</h2>
+            </div>
             <div className="admin-list">
               {abuseSignals.map((signal) => (
                 <div className="admin-card" key={signal.label}>
@@ -68,6 +79,7 @@ export default function AdminPage() {
           </section>
         </div>
       </section>
+      <SiteFooter />
     </main>
   );
 }

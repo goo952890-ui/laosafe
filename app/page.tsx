@@ -1,105 +1,118 @@
 import Link from "next/link";
 
 import { SearchTabs } from "@/components/SearchTabs";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getCounts, getRecentTargets, maskRecipientName } from "@/lib/site-utils";
+import { getRecentTargets } from "@/lib/site-repository";
+import { maskAccountDisplay } from "@/lib/site-utils";
 
-export default function Home() {
-  const recentTargets = getRecentTargets().slice(0, 3);
+export default async function Home() {
+  const recentTargets = (await getRecentTargets()).slice(0, 5);
 
   return (
     <main className="page-shell">
       <SiteHeader />
 
-      <section className="hero">
-        <article className="hero-card">
-          <div className="eyebrow">한국어 베타 · 공개 평가 기반 조회 서비스</div>
-          <h1 className="hero-title">라오스 번호와 계좌를 더 빠르게 확인하는 방법</h1>
-          <p className="hero-copy">
-            Lao Safe는 라오스 전화번호와 계좌번호를 검색하고, 다른 사용자가 남긴 스팸 또는
-            안전 평가를 함께 확인할 수 있는 공개형 조회 서비스입니다. 서비스는 특정 번호의
-            안전성을 공식 보증하지 않으며, 모든 결과는 사용자 평가를 기반으로 표시합니다.
-          </p>
-          <div className="hero-points">
-            <div className="hero-point">
-              <strong>전화번호</strong>
-              <span>공백, 하이픈, 국가번호를 정리해 같은 번호로 조회합니다.</span>
-            </div>
-            <div className="hero-point">
-              <strong>계좌번호</strong>
-              <span>은행 선택 없이 숫자만으로 검색하고 기존 평가를 확인합니다.</span>
-            </div>
-            <div className="hero-point">
-              <strong>QR 업로드</strong>
-              <span>QR 이미지에서 계좌번호가 명확할 때만 추출해 자동 검색합니다.</span>
+      <section className="hero-section">
+        <div className="hero-copy-block">
+          <h1 className="hero-title">모르는 번호, 더콜에서 확인하세요</h1>
+          <p className="hero-subtitle">더 많은 사람들이 함께 만드는 안전한 전화·계좌 정보</p>
+          <SearchTabs />
+        </div>
+        <div className="hero-visual" aria-hidden="true">
+          <div className="hero-phone">
+            <div className="hero-phone-notch" />
+            <div className="hero-phone-screen">
+              <span className="hero-phone-logo">thecall</span>
+              <span className="hero-phone-eye">◉</span>
             </div>
           </div>
-        </article>
-
-        <SearchTabs />
-      </section>
-
-      <section className="section">
-        <div className="section-grid">
-          <article className="surface-card">
-            <h2 className="section-title">서비스 원칙</h2>
-            <p className="body-copy">
-              일반 사용자는 로그인하지 않습니다. 누구나 검색하고, 익명으로 스팸 또는 안전
-              평가를 남길 수 있습니다. 허위 신고와 반복적인 악성 등록을 줄이기 위해 IP 주소,
-              브라우저 정보, 기기 식별값 등 접속 정보를 저장합니다.
-            </p>
-          </article>
-          <article className="surface-card">
-            <h2 className="section-title">주의 안내</h2>
-            <p className="body-copy">
-              검색 결과가 없다고 해서 반드시 안전한 번호라는 의미는 아닙니다. 평가 수가 적은
-              경우에는 정보가 충분하지 않을 수 있으므로 거래 전 추가 확인이 필요합니다.
-            </p>
-          </article>
-          <article className="surface-card">
-            <h2 className="section-title">수취인 이름 표기</h2>
-            <p className="body-copy">
-              계좌 수취인 이름이 확인되는 경우에도 전체를 공개하지 않고 일부만 마스킹해
-              표시합니다. 예: {maskRecipientName("SOMPHONE SHOP")}
-            </p>
-          </article>
+          <span className="hero-float hero-float-call">◌</span>
+          <span className="hero-float hero-float-alert">!</span>
+          <span className="hero-float hero-float-shield">⌂</span>
         </div>
       </section>
 
-      <section className="section">
-        <article className="surface-card">
-          <h2 className="section-title">최근 등록</h2>
-          <div className="record-list">
+      <section className="stats-strip">
+        <div className="stat-strip-item">
+          <span className="stat-strip-label">누적 신고 수</span>
+          <strong>1,248,531</strong>
+        </div>
+        <div className="stat-strip-item">
+          <span className="stat-strip-label">안전한 번호</span>
+          <strong>872,643</strong>
+        </div>
+        <div className="stat-strip-item">
+          <span className="stat-strip-label">스팸 번호</span>
+          <strong>375,888</strong>
+        </div>
+        <div className="stat-strip-item">
+          <span className="stat-strip-label">오늘 신규 신고</span>
+          <strong>1,269</strong>
+        </div>
+      </section>
+
+      <section className="home-columns home-columns--reference">
+        <article className="board-section">
+          <div className="board-header">
+            <h2 className="board-title">최근 신고 내역</h2>
+            <Link href="/recent" className="board-link">
+              더보기
+            </Link>
+          </div>
+          <div className="board-table">
+            <div className="board-table-head board-table-head--compact">
+              <span>번호</span>
+              <span>의견</span>
+              <span>등록일</span>
+            </div>
             {recentTargets.map(({ target, latest }) => {
-              const counts = getCounts(target.comments);
+              const display =
+                target.kind === "account" ? maskAccountDisplay(target.display) : target.display;
+
               return (
                 <Link
                   key={`${target.kind}-${target.normalized}`}
                   href={`/lookup/${target.kind === "phone" ? "phone" : "account"}/${target.display}`}
-                  className="record-card"
+                  className="board-row board-row--compact"
                 >
-                  <strong>{target.display}</strong>
-                  <p className="meta-copy">
-                    {target.kind === "phone" ? "전화번호" : "계좌번호"} · 총 {counts.total}건
-                    평가 · 최근 {latest.createdAt}
-                  </p>
-                  <p className="body-copy">{latest.text}</p>
+                  <strong>{display}</strong>
+                  <span className="board-comment">{latest.text}</span>
+                  <span className="meta-copy">{latest.createdAt}</span>
                 </Link>
               );
             })}
           </div>
-          <div className="button-row" style={{ marginTop: 18 }}>
-            <Link className="button-secondary" href="/recent">
-              전체 최근 등록 보기
-            </Link>
-          </div>
         </article>
+
+        <aside className="side-stack">
+          <section className="board-section">
+            <div className="board-header">
+              <h2 className="board-title">더콜은 이렇게 운영돼요</h2>
+            </div>
+            <div className="guide-list">
+              <div className="guide-item">
+                <strong>함께 만드는 정보</strong>
+                <p>여러분의 신고가 다른 사람을 보호합니다.</p>
+              </div>
+              <div className="guide-item">
+                <strong>익명 신고</strong>
+                <p>로그인 없이 누구나 익명으로 신고할 수 있습니다.</p>
+              </div>
+              <div className="guide-item">
+                <strong>정확한 정보 제공</strong>
+                <p>다수의 신고를 기반으로 신뢰도 높은 정보를 제공합니다.</p>
+              </div>
+              <div className="guide-item">
+                <strong>안전한 서비스</strong>
+                <p>허위 신고 방지를 위해 IP를 저장하고 있습니다.</p>
+              </div>
+            </div>
+          </section>
+        </aside>
       </section>
 
-      <footer className="footer">
-        Lao Safe는 특정 번호나 계좌를 공식적으로 안전 또는 사기로 판정하지 않습니다. 검색
-        결과와 수취인 정보는 참고용이며, 실제 거래 전 추가 검증이 필요합니다.
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

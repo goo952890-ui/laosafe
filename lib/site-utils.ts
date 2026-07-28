@@ -6,6 +6,23 @@ import {
   type SearchTarget,
 } from "./site-data";
 
+export function detectLookupKind(input: string): LookupKind {
+  const compact = input.replace(/\s+/g, "");
+  const digits = input.replace(/\D/g, "");
+
+  if (
+    compact.startsWith("+856") ||
+    digits.startsWith("85620") ||
+    digits.startsWith("85630") ||
+    digits.startsWith("020") ||
+    digits.startsWith("030")
+  ) {
+    return "phone";
+  }
+
+  return "account";
+}
+
 export function normalizePhone(input: string) {
   const digits = input.replace(/\D/g, "");
   if (!digits) return "";
@@ -42,6 +59,16 @@ export function formatAccountDisplay(normalized: string) {
   }
 
   return normalized;
+}
+
+export function maskAccountDisplay(value: string) {
+  const digits = value.replace(/[^\d]/g, "");
+
+  if (digits.length < 8) {
+    return value;
+  }
+
+  return `${digits.slice(0, 3)}-${"*".repeat(4)}-${"*".repeat(4)}-${digits.slice(-2)}`;
 }
 
 export function maskRecipientName(name?: string) {
@@ -97,6 +124,41 @@ export function getRecentTargets() {
       latest: [...target.comments].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0],
     }))
     .sort((a, b) => b.latest.createdAt.localeCompare(a.latest.createdAt));
+}
+
+export function getPopularTargets() {
+  const targets = [...phoneTargets, ...accountTargets] as SearchTarget[];
+
+  return targets
+    .map((target) => ({
+      target,
+      counts: getCounts(target.comments),
+    }))
+    .sort((a, b) => b.counts.total - a.counts.total || b.counts.spam - a.counts.spam);
+}
+
+export function getStatusSummary(spamCount: number) {
+  if (spamCount === 0) {
+    return {
+      tone: "safe",
+      label: "신고 없음",
+      message: "현재 등록된 신고가 없습니다.",
+    } as const;
+  }
+
+  if (spamCount >= 3) {
+    return {
+      tone: "danger",
+      label: "신고 다수",
+      message: "다수의 사용자가 신고한 번호입니다.",
+    } as const;
+  }
+
+  return {
+    tone: "warning",
+    label: "신고 있음",
+    message: "신고 내역이 있는 번호입니다.",
+  } as const;
 }
 
 export function extractAccountFromQrPayload(payload: string) {

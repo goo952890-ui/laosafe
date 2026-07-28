@@ -2,71 +2,86 @@
 
 import { useState } from "react";
 
-export function EvaluationForm({ label }: { label: string }) {
-  const [tone, setTone] = useState<"spam" | "safe">("spam");
+export function EvaluationForm({
+  label,
+  targetType,
+  targetDisplay,
+  targetNormalized,
+}: {
+  label: string;
+  targetType: "phone" | "account";
+  targetDisplay: string;
+  targetNormalized: string;
+}) {
   const [comment, setComment] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submitEvaluation() {
+    setPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/evaluations", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          targetType,
+          targetDisplay,
+          targetNormalized,
+          comment,
+          evaluation: "spam",
+        }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "평가를 등록하지 못했습니다.");
+      }
+
+      setSubmitted(true);
+      setComment("");
+    } catch (fetchError) {
+      setError(fetchError instanceof Error ? fetchError.message : "평가를 등록하지 못했습니다.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <section className="surface-card" aria-labelledby="evaluation-title">
-      <h2 className="section-title" id="evaluation-title">
-        이 번호 평가하기
+    <section className="panel-block" aria-labelledby="evaluation-title">
+      <h2 className="panel-title" id="evaluation-title">
+        의견 작성
       </h2>
-      <p className="section-copy">
-        {label}에 대한 경험이나 의견을 남겨 주세요. 스팸 유형이나 피해 금액 입력 없이
-        평가와 설명만 받습니다.
-      </p>
-
       <div className="field-stack">
-        <div className="radio-row">
-          <button
-            className={`pill-button ${tone === "spam" ? "is-selected" : ""}`}
-            onClick={() => setTone("spam")}
-            type="button"
-          >
-            스팸이에요
-          </button>
-          <button
-            className={`pill-button ${tone === "safe" ? "is-selected" : ""}`}
-            onClick={() => setTone("safe")}
-            type="button"
-          >
-            안전해요
-          </button>
-        </div>
+        <label className="field-label" htmlFor="comment-input">
+          설명 또는 사용자 의견
+        </label>
         <textarea
+          id="comment-input"
           className="textarea"
           placeholder={`${label}에 대한 경험이나 의견을 입력해 주세요.`}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
         />
-        <div className="alert">
-          허위 신고와 반복적인 악성 신고를 방지하기 위해 IP 주소 및 접속정보가 저장됩니다.
-          사실과 다른 내용을 고의로 등록하거나 타인에게 피해를 주기 위해 이용하는 경우 해당
-          내용이 삭제되고 서비스 이용이 제한될 수 있습니다.
-        </div>
-        <label className="checkbox-row">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(event) => setConfirmed(event.target.checked)}
-          />
-          <span>허위 내용을 고의로 등록하지 않았습니다.</span>
-        </label>
+        <p className="form-note">
+          허위 신고 방지를 위해 신고자의 IP 주소가 저장됩니다.
+          <br />
+          허위 사실이나 타인의 개인정보를 등록하지 마세요.
+        </p>
         <div className="button-row">
-          <button
-            className="button"
-            type="button"
-            disabled={!confirmed}
-            onClick={() => setSubmitted(true)}
-          >
-            익명으로 등록하기
+          <button className="button" type="button" onClick={submitEvaluation} disabled={pending}>
+            {pending ? "등록 중..." : "신고 등록"}
           </button>
         </div>
 
+        {error ? <div className="inline-notice inline-notice--warning">{error}</div> : null}
         {submitted && (
-          <div className="alert alert-success">
+          <div className="inline-notice inline-notice--success">
             평가가 등록되었습니다. 작성한 내용은 서비스 운영정책에 따라 수정, 숨김 또는 삭제될
             수 있습니다.
           </div>
