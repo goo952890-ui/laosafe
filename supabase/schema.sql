@@ -35,6 +35,24 @@ create table if not exists public.evaluations (
 create index if not exists evaluations_lookup_idx
   on public.evaluations (target_type, target_normalized, status, created_at desc);
 
+create table if not exists public.votes (
+  id bigint generated always as identity primary key,
+  target_type text not null check (target_type in ('phone', 'bank_account')),
+  target_normalized text not null,
+  target_display text not null,
+  vote text not null check (vote in ('spam', 'safe')),
+  ip_hash text not null,
+  encrypted_ip text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists votes_identity_target_idx
+  on public.votes (target_type, target_normalized, ip_hash);
+
+create index if not exists votes_lookup_idx
+  on public.votes (target_type, target_normalized, vote);
+
 create table if not exists public.deletion_requests (
   id bigint generated always as identity primary key,
   target_type text not null check (target_type in ('phone', 'bank_account')),
@@ -61,60 +79,29 @@ create table if not exists public.qr_scans (
   created_at timestamptz not null default now()
 );
 
-insert into public.phone_numbers (normalized_number, display_number)
-values
-  ('02055551234', '020 5555 1234'),
-  ('03077881234', '030 7788 1234')
-on conflict (normalized_number) do update
-set display_number = excluded.display_number,
-    updated_at = now();
+create table if not exists public.site_stats (
+  key text primary key,
+  total_reports integer not null default 0,
+  safe_targets integer not null default 0,
+  spam_targets integer not null default 0,
+  today_reports integer not null default 0,
+  updated_at timestamptz not null default now()
+);
 
-insert into public.bank_accounts (
-  normalized_account_number,
-  display_account_number,
-  bank_name,
-  recipient_name,
-  masked_recipient_name
-)
-values
-  ('010123456789', '010 123 456789', 'BCEL', 'SOMPHONE SHOP', 'SOM***** S***'),
-  ('200998877665', '200 998 877665', 'JDB', 'NAKHONE SUP', 'NAK**** S**')
-on conflict (normalized_account_number) do update
-set display_account_number = excluded.display_account_number,
-    bank_name = excluded.bank_name,
-    recipient_name = excluded.recipient_name,
-    masked_recipient_name = excluded.masked_recipient_name,
-    updated_at = now();
+create table if not exists public.security_logs (
+  id bigint generated always as identity primary key,
+  log_type text not null
+    check (log_type in ('input_validation_failed', 'abnormal_ip_blocked')),
+  source text not null
+    check (source in ('evaluation', 'deletion_request', 'lookup_rate_limit')),
+  target_type text
+    check (target_type in ('phone', 'bank_account')),
+  target_value text,
+  ip text,
+  identity_key text,
+  detail text,
+  created_at timestamptz not null default now()
+);
 
-insert into public.evaluations (
-  target_type,
-  target_normalized,
-  target_display,
-  evaluation,
-  comment,
-  created_at
-)
-values
-  ('phone', '02055551234', '020 5555 1234', 'spam', '대출 광고와 투자 권유 전화가 하루에 여러 번 왔습니다.', '2026-07-28T09:00:00Z'),
-  ('phone', '02055551234', '020 5555 1234', 'spam', '메신저로 송금을 유도한 뒤 계속 다른 번호로 연락했습니다.', '2026-07-27T09:00:00Z'),
-  ('phone', '02055551234', '020 5555 1234', 'safe', '한 번은 실제 배달 기사님 번호였지만 이후 광고성 연락도 있었습니다.', '2026-07-25T09:00:00Z'),
-  ('phone', '03077881234', '030 7788 1234', 'safe', '예약한 숙소 프런트에서 체크인 확인용으로 연락했습니다.', '2026-07-28T08:30:00Z'),
-  ('phone', '03077881234', '030 7788 1234', 'safe', '제가 주문한 물품 배송 관련 정상 연락이었습니다.', '2026-07-24T09:00:00Z'),
-  ('bank_account', '010123456789', '010 123 456789', 'spam', '상품 결제 후 판매자와 연락이 끊겼습니다.', '2026-07-28T07:00:00Z'),
-  ('bank_account', '010123456789', '010 123 456789', 'spam', '같은 계좌로 선입금을 요구하는 게시글이 반복적으로 올라왔습니다.', '2026-07-26T09:00:00Z'),
-  ('bank_account', '010123456789', '010 123 456789', 'safe', '오프라인 매장에서 정상 결제했던 계좌로 확인됩니다.', '2026-07-22T09:00:00Z'),
-  ('bank_account', '200998877665', '200 998 877665', 'safe', '소규모 도매 거래에서 여러 번 정상 송금했습니다.', '2026-07-27T07:00:00Z'),
-  ('bank_account', '200998877665', '200 998 877665', 'safe', '실매장 결제 계좌로 안내받았고 문제 없이 확인되었습니다.', '2026-07-21T09:00:00Z');
-
-insert into public.deletion_requests (
-  target_type,
-  target_label,
-  reason,
-  description,
-  contact,
-  status,
-  created_at
-)
-values
-  ('phone', '020 5555 1234', '전화번호 소유자가 변경됨', '기존 평가가 과거 소유자 기준일 수 있어 검토가 필요합니다.', 'owner@example.com', 'reviewing', '2026-07-28T05:00:00Z'),
-  ('bank_account', '010 123 456789', '허위 의견이 등록됨', '실제 거래와 무관한 동일 문구가 반복 등록되었습니다.', 'review@laosafe.app', 'submitted', '2026-07-28T04:00:00Z');
+create index if not exists security_logs_log_type_created_at_idx
+  on public.security_logs (log_type, created_at desc);

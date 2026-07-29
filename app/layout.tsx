@@ -6,8 +6,12 @@ export const metadata: Metadata = {
   description:
     "라오스 전화번호와 계좌번호를 검색하고, 익명 평가와 의견을 확인할 수 있는 조회 서비스입니다.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg?v=2", type: "image/svg+xml" },
+      { url: "/favicon.png?v=2", type: "image/png", sizes: "112x116" },
+    ],
+    shortcut: "/favicon.svg?v=2",
+    apple: "/favicon.png?v=2",
   },
   openGraph: {
     title: "Lao Safe",

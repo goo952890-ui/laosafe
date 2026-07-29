@@ -9,28 +9,36 @@ import {
   type LookupKind,
   type SearchTarget,
 } from "./site-data";
+import type {
+  AdminDeletionRequestRow,
+  AdminEvaluationRow,
+  AdminSecurityLogRow,
+} from "./admin-types";
+import { parseEvaluationMeta } from "./evaluation-meta";
+import {
+  computeHomeStats,
+  readStoredHomeStats,
+  refreshStoredHomeStats,
+  type HomeStats,
+} from "./site-stats";
 import {
   extractAccountFromQrPayload,
+  extractQrPayload,
   formatAccountDisplay,
   formatPhoneDisplay,
-  normalizeAccount,
+  getPhoneLookupVariants,
+  normalizeAccountLookupKey,
   normalizePhone,
 } from "./site-utils";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 
-type EvaluationRow = {
-  target_type: "phone" | "bank_account";
-  target_normalized: string;
-  target_display: string;
-  evaluation: "spam" | "safe";
-  comment: string;
-  created_at: string;
-  status: "visible" | "hidden" | "deleted";
-};
+type EvaluationRow = AdminEvaluationRow;
 
 type PhoneRow = {
   normalized_number: string;
   display_number: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 type AccountRow = {
@@ -39,32 +47,63 @@ type AccountRow = {
   bank_name: string | null;
   recipient_name: string | null;
   masked_recipient_name: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
-type DeletionRequestRow = {
+type QrScanRow = {
+  extracted_account_number: string | null;
+  qr_payload: string | null;
+  created_at: string;
+};
+
+type VoteRow = {
   id: number;
   target_type: "phone" | "bank_account";
-  target_label: string;
-  reason: string;
-  description: string;
-  contact: string;
-  status: "submitted" | "reviewing" | "resolved" | "rejected";
+  target_normalized: string;
+  target_display: string;
+  vote: "spam" | "safe";
+  ip_hash: string;
+  encrypted_ip?: string | null;
+  created_at: string;
+  updated_at?: string;
 };
 
+type DeletionRequestRow = Omit<AdminDeletionRequestRow, "created_at">;
+
+const HOME_STATS_TTL_MS = 60_000;
+const RECENT_TARGETS_TTL_MS = 30_000;
+
+let homeStatsCache: { value: HomeStats; expiresAt: number } | null = null;
+let recentTargetsCache:
+  | {
+      value: { target: SearchTarget; latest: CommentRecord }[];
+      expiresAt: number;
+    }
+  | null = null;
+
 function normalizeAccountLookup(input: string) {
-  return extractAccountFromQrPayload(input) ?? normalizeAccount(input);
+  return normalizeAccountLookupKey(input);
 }
 
 function normalizeForKind(kind: LookupKind, rawQuery: string) {
   return kind === "phone" ? normalizePhone(rawQuery) : normalizeAccountLookup(rawQuery);
 }
 
+function canonicalTargetNormalized(row: Pick<EvaluationRow, "target_type" | "target_normalized">) {
+  return row.target_type === "phone" ? normalizePhone(row.target_normalized) : row.target_normalized;
+}
+
 function mapComment(row: EvaluationRow): CommentRecord {
+  const meta = parseEvaluationMeta(row.user_agent);
+
   return {
-    id: `${row.target_type}-${row.target_normalized}-${row.created_at}`,
+    id: String(row.id),
     tone: row.evaluation,
-    text: row.comment,
+    text: row.comment ?? "",
     createdAt: row.created_at.slice(0, 10),
+    nickname: meta.nickname,
+    isAdmin: meta.isAdmin,
   };
 }
 
@@ -80,24 +119,113 @@ function fallbackFindTarget(kind: LookupKind, rawQuery: string) {
   };
 }
 
-function buildPhoneTarget(row: PhoneRow, evaluations: EvaluationRow[]): SearchTarget {
+function buildPhoneTarget(
+  row: PhoneRow,
+  evaluations: EvaluationRow[],
+  votes?: { spam: number; safe: number },
+): SearchTarget {
   return {
     kind: "phone",
     normalized: row.normalized_number,
-    display: row.display_number,
+    display: formatPhoneDisplay(row.normalized_number),
     comments: evaluations.map(mapComment),
+    spamVotes: votes?.spam ?? 0,
+    safeVotes: votes?.safe ?? 0,
   };
 }
 
-function buildAccountTarget(row: AccountRow, evaluations: EvaluationRow[]): SearchTarget {
+function buildAccountTarget(
+  row: AccountRow,
+  evaluations: EvaluationRow[],
+  votes?: { spam: number; safe: number },
+  qrPayload?: string | null,
+): SearchTarget {
   return {
     kind: "account",
     normalized: row.normalized_account_number,
-    display: row.display_account_number,
+    display: formatAccountDisplay(row.normalized_account_number),
     bankName: row.bank_name ?? undefined,
     recipientName: row.recipient_name ?? row.masked_recipient_name ?? undefined,
+    qrPayload: qrPayload ?? undefined,
     comments: evaluations.map(mapComment),
+    spamVotes: votes?.spam ?? 0,
+    safeVotes: votes?.safe ?? 0,
   };
+}
+
+function buildVoteKey(
+  targetType: "phone" | "bank_account",
+  targetNormalized: string,
+) {
+  const normalized =
+    targetType === "phone" ? normalizePhone(targetNormalized) : targetNormalized;
+  return `${targetType}-${normalized}`;
+}
+
+async function fetchVoteCountsByKeys(
+  phoneKeys: string[],
+  accountKeys: string[],
+): Promise<Map<string, { spam: number; safe: number }>> {
+  const map = new Map<string, { spam: number; safe: number }>();
+
+  if (!isSupabaseConfigured() || (phoneKeys.length === 0 && accountKeys.length === 0)) {
+    return map;
+  }
+
+  const supabase = getSupabaseAdmin();
+  try {
+    const results = await Promise.all([
+      phoneKeys.length > 0
+        ? supabase
+            .from("votes")
+            .select("id, target_type, target_normalized, target_display, vote, ip_hash, encrypted_ip, created_at, updated_at")
+            .eq("target_type", "phone")
+            .in("target_normalized", phoneKeys)
+        : Promise.resolve({ data: [] as VoteRow[], error: null }),
+      accountKeys.length > 0
+        ? supabase
+            .from("votes")
+            .select("id, target_type, target_normalized, target_display, vote, ip_hash, encrypted_ip, created_at, updated_at")
+            .eq("target_type", "bank_account")
+            .in("target_normalized", accountKeys)
+        : Promise.resolve({ data: [] as VoteRow[], error: null }),
+    ]);
+
+    for (const result of results) {
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      for (const row of (result.data ?? []) as VoteRow[]) {
+        const key = buildVoteKey(row.target_type, row.target_normalized);
+        const current = map.get(key) ?? { spam: 0, safe: 0 };
+        if (row.vote === "spam") current.spam += 1;
+        if (row.vote === "safe") current.safe += 1;
+        map.set(key, current);
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (isMissingTableError(message)) {
+      return map;
+    }
+
+    throw error;
+  }
+
+  return map;
+}
+
+async function fetchVoteCountsForLookup(kind: LookupKind, rawQuery: string, normalized: string) {
+  if (!isSupabaseConfigured()) {
+    return { spam: 0, safe: 0 };
+  }
+
+  const phoneKeys = kind === "phone" ? getPhoneLookupVariants(rawQuery).map(normalizePhone) : [];
+  const accountKeys = kind === "account" ? [normalized] : [];
+  const map = await fetchVoteCountsByKeys([...new Set(phoneKeys)], accountKeys);
+  const key = kind === "phone" ? `phone-${normalized}` : `bank_account-${normalized}`;
+  return map.get(key) ?? { spam: 0, safe: 0 };
 }
 
 function mapDeletionStatus(
@@ -129,8 +257,16 @@ async function fetchTargetMap(
   }
 
   const supabase = getSupabaseAdmin();
-  const phoneKeys = [...new Set(rows.filter((row) => row.target_type === "phone").map((row) => row.target_normalized))];
+  const phoneKeys = [
+    ...new Set(
+      rows
+        .filter((row) => row.target_type === "phone")
+        .map((row) => normalizePhone(row.target_normalized)),
+    ),
+  ];
   const accountKeys = [...new Set(rows.filter((row) => row.target_type === "bank_account").map((row) => row.target_normalized))];
+  const qrPayloadMap = new Map<string, string>();
+  const voteMap = await fetchVoteCountsByKeys(phoneKeys, accountKeys);
 
   if (phoneKeys.length > 0) {
     const { data } = await supabase
@@ -140,19 +276,39 @@ async function fetchTargetMap(
 
     for (const row of (data ?? []) as PhoneRow[]) {
       const evaluations = rows
-        .filter((item) => item.target_type === "phone" && item.target_normalized === row.normalized_number)
+        .filter(
+          (item) =>
+            item.target_type === "phone" &&
+            normalizePhone(item.target_normalized) === row.normalized_number,
+        )
         .sort((a, b) => b.created_at.localeCompare(a.created_at));
-      map.set(`phone-${row.normalized_number}`, buildPhoneTarget(row, evaluations));
+      map.set(
+        `phone-${row.normalized_number}`,
+        buildPhoneTarget(row, evaluations, voteMap.get(`phone-${row.normalized_number}`)),
+      );
     }
   }
 
   if (accountKeys.length > 0) {
-    const { data } = await supabase
-      .from("bank_accounts")
-      .select(
-        "normalized_account_number, display_account_number, bank_name, recipient_name, masked_recipient_name",
-      )
-      .in("normalized_account_number", accountKeys);
+    const [{ data }, { data: qrRows }] = await Promise.all([
+      supabase
+        .from("bank_accounts")
+        .select(
+          "normalized_account_number, display_account_number, bank_name, recipient_name, masked_recipient_name",
+        )
+        .in("normalized_account_number", accountKeys),
+      supabase
+        .from("qr_scans")
+        .select("extracted_account_number, qr_payload, created_at")
+        .in("extracted_account_number", accountKeys)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    for (const row of (qrRows ?? []) as QrScanRow[]) {
+      if (row.extracted_account_number && row.qr_payload && !qrPayloadMap.has(row.extracted_account_number)) {
+        qrPayloadMap.set(row.extracted_account_number, row.qr_payload);
+      }
+    }
 
     for (const row of (data ?? []) as AccountRow[]) {
       const evaluations = rows
@@ -162,7 +318,15 @@ async function fetchTargetMap(
             item.target_normalized === row.normalized_account_number,
         )
         .sort((a, b) => b.created_at.localeCompare(a.created_at));
-      map.set(`account-${row.normalized_account_number}`, buildAccountTarget(row, evaluations));
+      map.set(
+        `account-${row.normalized_account_number}`,
+        buildAccountTarget(
+          row,
+          evaluations,
+          voteMap.get(`bank_account-${row.normalized_account_number}`),
+          qrPayloadMap.get(row.normalized_account_number),
+        ),
+      );
     }
   }
 
@@ -177,9 +341,19 @@ function isMissingTableError(message: string) {
   );
 }
 
+export function invalidateSiteRepositoryCaches() {
+  homeStatsCache = null;
+  recentTargetsCache = null;
+}
+
 export async function findTarget(kind: LookupKind, rawQuery: string) {
   if (!isSupabaseConfigured()) {
-    return fallbackFindTarget(kind, rawQuery);
+    const fallback = fallbackFindTarget(kind, rawQuery);
+    return {
+      ...fallback,
+      hidden: false,
+      suggestions: getFallbackSuggestions(kind, fallback.normalized),
+    };
   }
 
   const supabase = getSupabaseAdmin();
@@ -187,7 +361,8 @@ export async function findTarget(kind: LookupKind, rawQuery: string) {
 
   try {
     if (kind === "phone") {
-      const [{ data: phone }, { data: evaluations }] = await Promise.all([
+      const phoneVariants = getPhoneLookupVariants(rawQuery);
+      const [{ data: phone }, { data: evaluations }, voteCounts, hiddenTarget] = await Promise.all([
         supabase
           .from("phone_numbers")
           .select("normalized_number, display_number")
@@ -195,23 +370,28 @@ export async function findTarget(kind: LookupKind, rawQuery: string) {
           .maybeSingle(),
         supabase
           .from("evaluations")
-          .select("target_type, target_normalized, target_display, evaluation, comment, created_at, status")
+          .select("id, target_type, target_normalized, target_display, evaluation, comment, user_agent, device_fingerprint, created_at, status")
           .eq("target_type", "phone")
-          .eq("target_normalized", normalized)
+          .in("target_normalized", phoneVariants)
           .eq("status", "visible")
           .order("created_at", { ascending: false }),
+        fetchVoteCountsForLookup("phone", rawQuery, normalized),
+        hasHiddenTargetAny(rawQuery, "phone"),
       ]);
 
       return {
         normalized,
+        hidden: hiddenTarget,
         found: phone
-          ? buildPhoneTarget(phone as PhoneRow, (evaluations ?? []) as EvaluationRow[])
+          ? buildPhoneTarget(phone as PhoneRow, (evaluations ?? []) as EvaluationRow[], voteCounts)
           : null,
         display: phone?.display_number ?? formatPhoneDisplay(normalized),
+        suggestions: phone ? [] : await getLookupSuggestions("phone", normalized),
       };
     }
 
-    const [{ data: account }, { data: evaluations }] = await Promise.all([
+    const qrPayloadFromInput = extractQrPayload(rawQuery);
+    const [{ data: account }, { data: evaluations }, { data: qrRows }, voteCounts, hiddenTarget] = await Promise.all([
       supabase
         .from("bank_accounts")
         .select(
@@ -221,27 +401,125 @@ export async function findTarget(kind: LookupKind, rawQuery: string) {
         .maybeSingle(),
       supabase
         .from("evaluations")
-        .select("target_type, target_normalized, target_display, evaluation, comment, created_at, status")
+        .select("id, target_type, target_normalized, target_display, evaluation, comment, user_agent, device_fingerprint, created_at, status")
         .eq("target_type", "bank_account")
         .eq("target_normalized", normalized)
         .eq("status", "visible")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("qr_scans")
+        .select("extracted_account_number, qr_payload, created_at")
+        .eq("extracted_account_number", normalized)
+        .order("created_at", { ascending: false })
+        .limit(1),
+      fetchVoteCountsForLookup("account", rawQuery, normalized),
+      hasHiddenTargetAny(rawQuery, "account"),
     ]);
 
     return {
       normalized,
+      hidden: hiddenTarget,
       found: account
-        ? buildAccountTarget(account as AccountRow, (evaluations ?? []) as EvaluationRow[])
+        ? buildAccountTarget(
+            account as AccountRow,
+            (evaluations ?? []) as EvaluationRow[],
+            voteCounts,
+            qrPayloadFromInput ?? ((qrRows?.[0] as QrScanRow | undefined)?.qr_payload ?? null),
+          )
         : null,
       display: account?.display_account_number ?? formatAccountDisplay(normalized),
+      suggestions: account ? [] : await getLookupSuggestions("account", normalized),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (isMissingTableError(message)) {
-      return fallbackFindTarget(kind, rawQuery);
+      const fallback = fallbackFindTarget(kind, rawQuery);
+      return {
+        ...fallback,
+        hidden: false,
+        suggestions: getFallbackSuggestions(kind, fallback.normalized),
+      };
     }
     throw error;
   }
+}
+
+async function getLookupSuggestions(kind: LookupKind, normalized: string) {
+  if (normalized.length < 5) {
+    return [] as Array<{ kind: LookupKind; normalized: string; display: string }>;
+  }
+
+  if (kind === "account" && normalized.startsWith("qr:")) {
+    return [] as Array<{ kind: LookupKind; normalized: string; display: string }>;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const [phoneResult, accountResult] = await Promise.all([
+    supabase
+      .from("phone_numbers")
+      .select("normalized_number, display_number")
+      .like("normalized_number", `%${normalized}%`)
+      .order("normalized_number")
+      .limit(8),
+    supabase
+      .from("bank_accounts")
+      .select("normalized_account_number, display_account_number")
+      .like("normalized_account_number", `%${normalized}%`)
+      .order("normalized_account_number")
+      .limit(8),
+  ]);
+
+  if (phoneResult.error) throw phoneResult.error;
+  if (accountResult.error) throw accountResult.error;
+
+  const candidatePhoneKeys = ((phoneResult.data ?? []) as PhoneRow[]).map((row) => row.normalized_number);
+  const candidateAccountKeys = ((accountResult.data ?? []) as AccountRow[]).map(
+    (row) => row.normalized_account_number,
+  );
+  const hiddenKeys = await getHiddenTargetKeys(candidatePhoneKeys, candidateAccountKeys);
+
+  const phoneSuggestions = ((phoneResult.data ?? []) as PhoneRow[])
+    .filter((row) => !hiddenKeys.has(`phone-${row.normalized_number}`))
+    .filter((row) => !(kind === "phone" && row.normalized_number === normalized))
+    .map((row) => ({
+      kind: "phone" as const,
+      normalized: row.normalized_number,
+      display: formatPhoneDisplay(row.normalized_number),
+    }));
+
+  const accountSuggestions = ((accountResult.data ?? []) as AccountRow[])
+    .filter((row) => !hiddenKeys.has(`bank_account-${row.normalized_account_number}`))
+    .filter((row) => !(kind === "account" && row.normalized_account_number === normalized))
+    .map((row) => ({
+      kind: "account" as const,
+      normalized: row.normalized_account_number,
+      display: formatAccountDisplay(row.normalized_account_number),
+    }));
+
+  return [...phoneSuggestions, ...accountSuggestions].slice(0, 8);
+}
+
+function getFallbackSuggestions(kind: LookupKind, normalized: string) {
+  if (normalized.length < 5) {
+    return [] as Array<{ kind: LookupKind; normalized: string; display: string }>;
+  }
+
+  const source = [...phoneTargets, ...accountTargets];
+
+  return source
+    .filter((target) => {
+      if (target.kind === kind && target.normalized === normalized) {
+        return false;
+      }
+
+      return target.normalized.includes(normalized);
+    })
+    .slice(0, 8)
+    .map((target) => ({
+      kind: target.kind,
+      normalized: target.normalized,
+      display: target.display,
+    }));
 }
 
 export async function getRecentTargets() {
@@ -249,45 +527,127 @@ export async function getRecentTargets() {
     return [...phoneTargets, ...accountTargets]
       .map((target) => ({
         target,
-        latest: [...target.comments].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0],
+        latest: [...target.comments].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0],
       }))
       .sort((a, b) => b.latest.createdAt.localeCompare(a.latest.createdAt));
+  }
+
+  if (recentTargetsCache && recentTargetsCache.expiresAt > Date.now()) {
+    return recentTargetsCache.value;
   }
 
   const supabase = getSupabaseAdmin();
 
   try {
-    const { data, error } = await supabase
-      .from("evaluations")
-      .select("target_type, target_normalized, target_display, evaluation, comment, created_at, status")
-      .eq("status", "visible")
-      .order("created_at", { ascending: false })
-      .limit(80);
+    const [phoneRowsResult, accountRowsResult, evaluationRowsResult, hiddenEvaluationsResult] = await Promise.all([
+      supabase
+        .from("phone_numbers")
+        .select("normalized_number, display_number, created_at, updated_at")
+        .order("created_at", { ascending: false })
+        .limit(40),
+      supabase
+        .from("bank_accounts")
+        .select(
+          "normalized_account_number, display_account_number, bank_name, recipient_name, masked_recipient_name, created_at, updated_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(40),
+      supabase
+        .from("evaluations")
+        .select(
+          "id, target_type, target_normalized, target_display, evaluation, comment, user_agent, device_fingerprint, created_at, status",
+        )
+        .eq("status", "visible")
+        .not("comment", "eq", "")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("evaluations")
+        .select("target_type, target_normalized")
+        .in("status", ["hidden", "deleted"]),
+    ]);
 
-    if (error) throw error;
+    if (phoneRowsResult.error) throw phoneRowsResult.error;
+    if (accountRowsResult.error) throw accountRowsResult.error;
+    if (evaluationRowsResult.error) throw evaluationRowsResult.error;
+    if (hiddenEvaluationsResult.error) throw hiddenEvaluationsResult.error;
 
-    const rows = (data ?? []) as EvaluationRow[];
-    const targetMap = await fetchTargetMap(rows);
-    const seen = new Set<string>();
+    const phoneRows = (phoneRowsResult.data ?? []) as PhoneRow[];
+    const accountRows = (accountRowsResult.data ?? []) as AccountRow[];
+    const hiddenKeys = new Set(
+      ((hiddenEvaluationsResult.data ?? []) as Array<Pick<AdminEvaluationRow, "target_type" | "target_normalized">>).map(
+        (row) => `${row.target_type}-${canonicalTargetNormalized(row)}`,
+      ),
+    );
+    const targetRows = [
+      ...phoneRows.map((row) => ({
+        kind: "phone" as const,
+        normalized: row.normalized_number,
+        createdAt: row.created_at ?? row.updated_at ?? "",
+        row,
+      })),
+      ...accountRows.map((row) => ({
+        kind: "account" as const,
+        normalized: row.normalized_account_number,
+        createdAt: row.created_at ?? row.updated_at ?? "",
+        row,
+      })),
+    ]
+      .filter((item) => !hiddenKeys.has(item.kind === "phone" ? `phone-${item.normalized}` : `bank_account-${item.normalized}`))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 40);
 
-    return rows
-      .map((row) => {
-        const key =
-          row.target_type === "phone"
-            ? `phone-${row.target_normalized}`
-            : `account-${row.target_normalized}`;
-        if (seen.has(key)) return null;
-        seen.add(key);
+    const rows = (evaluationRowsResult.data ?? []) as EvaluationRow[];
+    const firstReportsByKey = new Map<string, EvaluationRow>();
 
-        const target = targetMap.get(key);
-        if (!target) return null;
+    for (const row of rows) {
+      const key = `${row.target_type}-${canonicalTargetNormalized(row)}`;
+      if (!firstReportsByKey.has(key)) {
+        firstReportsByKey.set(key, row);
+      }
+    }
+
+    const voteMap = await fetchVoteCountsByKeys(
+      targetRows.filter((item) => item.kind === "phone").map((item) => item.normalized),
+      targetRows.filter((item) => item.kind === "account").map((item) => item.normalized),
+    );
+
+    const result = targetRows
+      .map((item) => {
+        const reportKey = item.kind === "phone" ? `phone-${item.normalized}` : `bank_account-${item.normalized}`;
+        const firstReport = firstReportsByKey.get(reportKey);
+        const target =
+          item.kind === "phone"
+            ? buildPhoneTarget(
+                item.row as PhoneRow,
+                firstReport ? [firstReport] : [],
+                voteMap.get(`phone-${item.normalized}`),
+              )
+            : buildAccountTarget(
+                item.row as AccountRow,
+                firstReport ? [firstReport] : [],
+                voteMap.get(`bank_account-${item.normalized}`),
+              );
 
         return {
           target,
-          latest: mapComment(row),
+          latest: firstReport
+            ? mapComment(firstReport)
+            : {
+                id: `registered-${item.kind}-${item.normalized}`,
+                tone: "safe" as const,
+                text: "",
+                createdAt: item.createdAt.slice(0, 10),
+              },
         };
       })
       .filter((entry): entry is { target: SearchTarget; latest: CommentRecord } => Boolean(entry));
+
+    recentTargetsCache = {
+      value: result,
+      expiresAt: Date.now() + RECENT_TARGETS_TTL_MS,
+    };
+
+    return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (isMissingTableError(message)) {
@@ -300,6 +660,50 @@ export async function getRecentTargets() {
     }
     throw error;
   }
+}
+
+async function getHiddenTargetKeys(phoneKeys: string[], accountKeys: string[]) {
+  const hiddenKeys = new Set<string>();
+
+  if (!isSupabaseConfigured() || (phoneKeys.length === 0 && accountKeys.length === 0)) {
+    return hiddenKeys;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const queries = [];
+
+  if (phoneKeys.length > 0) {
+    queries.push(
+      supabase
+        .from("evaluations")
+        .select("target_type, target_normalized")
+        .eq("target_type", "phone")
+        .in("target_normalized", phoneKeys)
+        .in("status", ["hidden", "deleted"]),
+    );
+  }
+
+  if (accountKeys.length > 0) {
+    queries.push(
+      supabase
+        .from("evaluations")
+        .select("target_type, target_normalized")
+        .eq("target_type", "bank_account")
+        .in("target_normalized", accountKeys)
+        .in("status", ["hidden", "deleted"]),
+    );
+  }
+
+  const results = await Promise.all(queries);
+
+  for (const result of results) {
+    if (result.error) throw result.error;
+    for (const row of (result.data ?? []) as Array<Pick<AdminEvaluationRow, "target_type" | "target_normalized">>) {
+      hiddenKeys.add(`${row.target_type}-${canonicalTargetNormalized(row)}`);
+    }
+  }
+
+  return hiddenKeys;
 }
 
 export async function getDeletionRequests() {
@@ -339,3 +743,430 @@ export function getAbuseSignals() {
   return abuseSignals;
 }
 
+export async function getAdminEvaluations() {
+  if (!isSupabaseConfigured()) {
+    return [] as AdminEvaluationRow[];
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("evaluations")
+    .select(
+      "id, target_type, target_normalized, target_display, evaluation, comment, ip_hash, encrypted_ip, user_agent, device_fingerprint, created_at, status",
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  return (data ?? []) as AdminEvaluationRow[];
+}
+
+export async function getAdminDeletionRequests() {
+  if (!isSupabaseConfigured()) {
+    return [] as AdminDeletionRequestRow[];
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("deletion_requests")
+    .select("id, target_type, target_label, reason, description, contact, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  return (data ?? []) as AdminDeletionRequestRow[];
+}
+
+export async function getAdminSecurityLogs(
+  logType: "input_validation_failed" | "abnormal_ip_blocked",
+) {
+  if (!isSupabaseConfigured()) {
+    return [] as AdminSecurityLogRow[];
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("security_logs")
+    .select("id, log_type, source, target_type, target_value, ip, identity_key, detail, created_at")
+    .eq("log_type", logType)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    if (isMissingTableError(error.message)) {
+      return [] as AdminSecurityLogRow[];
+    }
+
+    throw error;
+  }
+
+  return (data ?? []) as AdminSecurityLogRow[];
+}
+
+export async function getAdminDashboardData() {
+  const [evaluations, deletionRequests, phoneRows, accountRows, homeStats, hiddenEvaluations] = await Promise.all([
+    getAdminEvaluations(),
+    getAdminDeletionRequests(),
+    isSupabaseConfigured()
+      ? getSupabaseAdmin()
+          .from("phone_numbers")
+          .select("normalized_number, display_number, created_at, updated_at")
+          .order("created_at", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as PhoneRow[], error: null }),
+    isSupabaseConfigured()
+      ? getSupabaseAdmin()
+          .from("bank_accounts")
+          .select(
+            "normalized_account_number, display_account_number, bank_name, recipient_name, masked_recipient_name, created_at, updated_at",
+          )
+          .order("created_at", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as AccountRow[], error: null }),
+    getHomeStats(),
+    isSupabaseConfigured()
+      ? getSupabaseAdmin()
+          .from("evaluations")
+          .select("target_type, target_normalized")
+          .in("status", ["hidden", "deleted"])
+      : Promise.resolve({ data: [] as Pick<AdminEvaluationRow, "target_type" | "target_normalized">[], error: null }),
+  ]);
+
+  const hiddenTargetKeys = new Set(
+    ((hiddenEvaluations.data ?? []) as Array<Pick<AdminEvaluationRow, "target_type" | "target_normalized">>).map(
+      (row) => `${row.target_type}-${row.target_normalized}`,
+    ),
+  );
+  const targetMetaMap = buildAdminTargetMetaMap(evaluations);
+
+  return {
+    stats: {
+      totalRegistered: homeStats.totalReports,
+      todayRegistered: homeStats.todayReports,
+      hiddenTargets: hiddenTargetKeys.size,
+      spamTargets: homeStats.spamTargets,
+      safeTargets: homeStats.safeTargets,
+    },
+    targets: [
+      ...((phoneRows.data ?? []) as PhoneRow[]).map((row) => ({
+        kind: "phone" as const,
+        normalized: row.normalized_number,
+        number: formatPhoneDisplay(row.normalized_number),
+        latestCreatedAt: row.created_at ?? row.updated_at ?? "",
+        ...getAdminTargetMeta("phone", row.normalized_number, targetMetaMap),
+      })),
+      ...((accountRows.data ?? []) as AccountRow[]).map((row) => ({
+        kind: "account" as const,
+        normalized: row.normalized_account_number,
+        number: formatAccountDisplay(row.normalized_account_number),
+        latestCreatedAt: row.created_at ?? row.updated_at ?? "",
+        ...getAdminTargetMeta("bank_account", row.normalized_account_number, targetMetaMap),
+      })),
+    ]
+      .sort((a, b) => b.latestCreatedAt.localeCompare(a.latestCreatedAt))
+      .slice(0, 5),
+    recentComments: evaluations
+      .filter((row) => row.comment.trim().length > 0)
+      .slice(0, 5),
+    safeRequests: evaluations.filter(isPendingSafeApprovalRow).slice(0, 5),
+    deletionRequests: deletionRequests.slice(0, 5),
+    objections: deletionRequests.filter((request) => request.reason.includes("이의")).slice(0, 5),
+  };
+}
+
+export async function getAdminListPage(
+  section:
+    | "targets"
+    | "comments"
+    | "safe-requests"
+    | "requests"
+    | "objections"
+    | "input-failures"
+    | "abnormal-ips",
+  page: number,
+  pageSize = 10,
+) {
+  const safePage = Math.max(1, page);
+
+  if (section === "targets") {
+    const [phoneRows, accountRows, evaluations] = await Promise.all([
+      isSupabaseConfigured()
+        ? getSupabaseAdmin()
+            .from("phone_numbers")
+            .select("normalized_number, display_number, created_at, updated_at")
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] as PhoneRow[], error: null }),
+      isSupabaseConfigured()
+        ? getSupabaseAdmin()
+            .from("bank_accounts")
+            .select(
+              "normalized_account_number, display_account_number, bank_name, recipient_name, masked_recipient_name, created_at, updated_at",
+            )
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] as AccountRow[], error: null }),
+      getAdminEvaluations(),
+    ]);
+    const targetMetaMap = buildAdminTargetMetaMap(evaluations);
+
+    const items = [
+      ...((phoneRows.data ?? []) as PhoneRow[]).map((row) => ({
+        kind: "phone" as const,
+        normalized: row.normalized_number,
+        number: formatPhoneDisplay(row.normalized_number),
+        createdAt: row.created_at ?? row.updated_at ?? "",
+        ...getAdminTargetMeta("phone", row.normalized_number, targetMetaMap),
+      })),
+      ...((accountRows.data ?? []) as AccountRow[]).map((row) => ({
+        kind: "account" as const,
+        normalized: row.normalized_account_number,
+        number: formatAccountDisplay(row.normalized_account_number),
+        createdAt: row.created_at ?? row.updated_at ?? "",
+        ...getAdminTargetMeta("bank_account", row.normalized_account_number, targetMetaMap),
+      })),
+    ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    return {
+      title: "등록된 번호",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  if (section === "comments") {
+    const items = (await getAdminEvaluations()).filter((row) => row.comment.trim().length > 0);
+    return {
+      title: "최근 의견",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  if (section === "safe-requests") {
+    const items = (await getAdminEvaluations()).filter(isPendingSafeApprovalRow);
+    return {
+      title: "안전번호 등록 요청",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  if (section === "requests") {
+    const items = await getAdminDeletionRequests();
+    return {
+      title: "삭제 요청",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  if (section === "input-failures") {
+    const items = await getAdminSecurityLogs("input_validation_failed");
+    return {
+      title: "입력 실패 로그",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  if (section === "abnormal-ips") {
+    const items = await getAdminSecurityLogs("abnormal_ip_blocked");
+    return {
+      title: "비정상 패턴 IP 로그",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  const items = (await getAdminDeletionRequests()).filter((request) => request.reason.includes("이의"));
+  return {
+    title: "번호 삭제 이의",
+    totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+    items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+  };
+}
+
+export async function getAdminTargetDetail(kind: LookupKind, rawQuery: string) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const normalized = normalizeForKind(kind, rawQuery);
+  const targetType = kind === "phone" ? "phone" : "bank_account";
+  const display =
+    kind === "phone" ? formatPhoneDisplay(normalized) : formatAccountDisplay(normalized);
+  const phoneVariants = kind === "phone" ? getPhoneLookupVariants(rawQuery) : null;
+
+  const [{ data: evaluations, error: evalError }, { data: deletionRows, error: requestError }] =
+    await Promise.all([
+      supabase
+        .from("evaluations")
+        .select(
+          "id, target_type, target_normalized, target_display, evaluation, comment, ip_hash, encrypted_ip, user_agent, device_fingerprint, created_at, status",
+        )
+        .eq("target_type", targetType)
+        .in("target_normalized", phoneVariants ?? [normalized])
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("deletion_requests")
+        .select("id, target_type, target_label, reason, description, contact, status, created_at")
+        .eq("target_type", targetType)
+        .or(`target_label.eq.${display},target_label.eq.${normalized}`),
+    ]);
+
+  if (evalError) throw evalError;
+  if (requestError) throw requestError;
+
+  const rows = (evaluations ?? []) as AdminEvaluationRow[];
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const comments = rows
+    .filter((row) => row.comment.trim().length > 0)
+    .map((row) => ({ ...row, meta: parseEvaluationMeta(row.user_agent) }));
+  const firstReport = comments[0] ?? null;
+
+  return {
+    kind,
+    normalized,
+    display: rows[0]?.target_display ?? display,
+    firstReport,
+    comments: comments.filter((item) => item.id !== firstReport?.id),
+    evaluations: rows,
+    deletionRequests: (deletionRows ?? []) as AdminDeletionRequestRow[],
+  };
+}
+
+function buildAdminTargetMetaMap(evaluations: AdminEvaluationRow[]) {
+  const map = new Map<
+    string,
+    { evaluationLabel: string; statusLabel: "표시" | "숨김" | "승인 대기" }
+  >();
+
+  const grouped = new Map<string, AdminEvaluationRow[]>();
+  for (const row of evaluations) {
+    const key = `${row.target_type}-${canonicalTargetNormalized(row)}`;
+    const current = grouped.get(key) ?? [];
+    current.push(row);
+    grouped.set(key, current);
+  }
+
+  for (const [key, rows] of grouped.entries()) {
+    const firstReport =
+      rows
+        .filter((row) => row.comment.trim().length > 0)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at))[0] ?? rows[0];
+
+    const pendingSafe = firstReport ? isPendingSafeApprovalRow(firstReport) : false;
+    const hidden = rows.some((row) => row.status === "hidden" || row.status === "deleted");
+
+    map.set(key, {
+      evaluationLabel: firstReport?.evaluation === "safe" ? "안전" : "스팸",
+      statusLabel: pendingSafe ? "승인 대기" : hidden ? "숨김" : "표시",
+    });
+  }
+
+  return map;
+}
+
+function getAdminTargetMeta(
+  targetType: "phone" | "bank_account",
+  normalized: string,
+  metaMap: Map<string, { evaluationLabel: string; statusLabel: "표시" | "숨김" | "승인 대기" }>,
+) {
+  return (
+    metaMap.get(`${targetType}-${targetType === "phone" ? normalizePhone(normalized) : normalized}`) ?? {
+      evaluationLabel: "-",
+      statusLabel: "표시",
+    }
+  );
+}
+
+function isPendingSafeApprovalRow(row: AdminEvaluationRow) {
+  const meta = parseEvaluationMeta(row.user_agent);
+  return (
+    row.comment.trim().length > 0 &&
+    row.status === "hidden" &&
+    row.evaluation === "safe" &&
+    meta.safeApprovalPending
+  );
+}
+
+export async function hasHiddenTarget(kind: LookupKind, rawQuery: string) {
+  if (!isSupabaseConfigured()) return false;
+
+  const supabase = getSupabaseAdmin();
+  const normalized = normalizeForKind(kind, rawQuery);
+  const targetType = kind === "phone" ? "phone" : "bank_account";
+  const phoneVariants = kind === "phone" ? getPhoneLookupVariants(rawQuery) : null;
+
+  const { count, error } = await supabase
+    .from("evaluations")
+    .select("id", { count: "exact", head: true })
+    .eq("target_type", targetType)
+    .in("target_normalized", phoneVariants ?? [normalized])
+    .in("status", ["hidden", "deleted"]);
+
+  if (error) throw error;
+
+  return (count ?? 0) > 0;
+}
+
+export async function hasHiddenTargetAny(rawQuery: string, preferredKind?: LookupKind) {
+  const checks: LookupKind[] =
+    preferredKind === "phone"
+      ? ["phone", "account"]
+      : preferredKind === "account"
+        ? ["account", "phone"]
+        : ["phone", "account"];
+
+  for (const kind of checks) {
+    if (await hasHiddenTarget(kind, rawQuery)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function getHomeStats() {
+  if (!isSupabaseConfigured()) {
+    const allTargets = [...phoneTargets, ...accountTargets];
+    const safeTargetCount = allTargets.filter((target) =>
+      target.comments.length > 0 && target.comments.every((comment) => comment.tone === "safe"),
+    ).length;
+    const spamTargetCount = allTargets.filter((target) =>
+      target.comments.some((comment) => comment.tone === "spam"),
+    ).length;
+    const today = "2026-07-28";
+    const firstReports = allTargets
+      .map((target) => [...target.comments].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0])
+      .filter(Boolean);
+
+    return {
+      totalReports: allTargets.length,
+      safeTargets: safeTargetCount,
+      spamTargets: spamTargetCount,
+      todayReports: firstReports.filter((comment) => comment.createdAt === today).length,
+    };
+  }
+
+  if (homeStatsCache && homeStatsCache.expiresAt > Date.now()) {
+    return homeStatsCache.value;
+  }
+
+  let result = await readStoredHomeStats();
+  if (!result) {
+    result = (await refreshStoredHomeStats()) ?? (await computeHomeStats());
+  }
+
+  homeStatsCache = {
+    value: result,
+    expiresAt: Date.now() + HOME_STATS_TTL_MS,
+  };
+
+  return result;
+}

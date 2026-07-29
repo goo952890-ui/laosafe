@@ -33,7 +33,7 @@ export default async function DeleteRequestPage({ params }: PageProps) {
           <p className="section-copy">{label}에 대한 삭제 요청 내용을 제출합니다.</p>
         </div>
         <div className="request-panel">
-          <DeletionRequestForm target={label} targetType={kind} />
+          <DeletionRequestForm target={label} targetNormalized={label} targetType={kind} />
         </div>
       </section>
       <SiteFooter />

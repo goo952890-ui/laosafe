@@ -6,12 +6,19 @@ export interface CommentRecord {
   tone: EvaluationTone;
   text: string;
   createdAt: string;
+  nickname?: string | null;
+  isAdmin?: boolean;
+  qrPayload?: string | null;
+  isPrimary?: boolean;
+  isVoteOnly?: boolean;
 }
 
 interface BaseTarget {
   normalized: string;
   display: string;
   comments: CommentRecord[];
+  spamVotes?: number;
+  safeVotes?: number;
 }
 
 export interface PhoneTarget extends BaseTarget {
@@ -22,6 +29,7 @@ export interface AccountTarget extends BaseTarget {
   kind: "account";
   bankName?: string;
   recipientName?: string;
+  qrPayload?: string;
 }
 
 export type SearchTarget = PhoneTarget | AccountTarget;

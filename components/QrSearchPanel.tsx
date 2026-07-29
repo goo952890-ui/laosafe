@@ -1,10 +1,10 @@
 "use client";
 
-import jsQR from "jsqr";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { extractAccountFromQrPayload, formatAccountDisplay } from "@/lib/site-utils";
+import { scanQrPayloadFromFile } from "@/lib/qr-scan-client";
+import { formatAccountDisplay } from "@/lib/site-utils";
 
 type ScanState =
   | { kind: "idle" }
@@ -29,52 +29,24 @@ export function QrSearchPanel() {
 
     setScanState({ kind: "working" });
 
-    const imageUrl = URL.createObjectURL(file);
-
     try {
-      const image = await loadImage(imageUrl);
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      const context = canvas.getContext("2d");
+      const payload = await scanQrPayloadFromFile(file);
 
-      if (!context) {
-        throw new Error("Canvas 컨텍스트를 만들 수 없습니다.");
-      }
-
-      context.drawImage(image, 0, 0);
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-      if (!code?.data) {
+      if (!payload) {
         setScanState({
           kind: "error",
-          message:
-            "QR코드는 인식했지만 계좌번호를 확인하지 못했습니다. 다른 이미지를 업로드하거나 계좌번호를 직접 입력해 주세요.",
+          message: "이미지에서 QR코드를 찾을 수 없습니다.",
         });
         return;
       }
 
-      const extracted = extractAccountFromQrPayload(code.data);
-
-      if (!extracted) {
-        setScanState({
-          kind: "error",
-          message:
-            "QR코드에서 계좌번호를 확인하지 못했습니다. 다른 이미지를 업로드하거나 계좌번호를 직접 입력해 주세요.",
-        });
-        return;
-      }
-
-      setScanState({ kind: "success", account: extracted });
+      setScanState({ kind: "success", account: payload });
     } catch {
       setScanState({
         kind: "error",
         message:
           "이미지를 처리하는 중 문제가 발생했습니다. 다른 이미지를 업로드하거나 계좌번호를 직접 입력해 주세요.",
       });
-    } finally {
-      URL.revokeObjectURL(imageUrl);
     }
   }
 
@@ -99,15 +71,15 @@ export function QrSearchPanel() {
         {scanState.kind === "success" && (
           <div className="field-stack">
             <div className="qr-result">
-              계좌번호를 확인했습니다.
+              QR코드 텍스트를 확인했습니다.
               <br />
               <strong>{formatAccountDisplay(scanState.account)}</strong>
-              <br />이 계좌번호의 평가를 확인합니다.
+              <br />이 내용으로 등록된 제보를 확인합니다.
             </div>
             <div className="button-row">
               <button
                 className="button"
-                onClick={() => router.push(`/lookup/account/${scanState.account}`)}
+                onClick={() => router.push(`/lookup/account/${encodeURIComponent(`qr:${scanState.account}`)}`)}
               >
                 검색 결과 보기
               </button>
@@ -119,13 +91,4 @@ export function QrSearchPanel() {
       </div>
     </>
   );
-}
-
-function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
 }

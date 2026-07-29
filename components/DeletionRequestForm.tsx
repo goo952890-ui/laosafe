@@ -1,24 +1,69 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { validatePlainText, validateTargetLength } from "@/lib/input-validation";
 
 export function DeletionRequestForm({
   target,
+  targetNormalized,
   targetType,
+  title = "삭제 요청",
+  intro,
+  submitLabel = "삭제 요청 접수",
+  defaultReason = "잘못된 정보가 등록됨",
+  reasonOptions,
 }: {
   target: string;
+  targetNormalized?: string;
   targetType: "phone" | "account";
+  title?: string;
+  intro?: string;
+  submitLabel?: string;
+  defaultReason?: string;
+  reasonOptions?: string[];
 }) {
-  const [reason, setReason] = useState("잘못된 정보가 등록됨");
+  const options =
+    reasonOptions ?? [
+      "잘못된 정보가 등록됨",
+      "허위 의견이 등록됨",
+      "전화번호 소유자가 변경됨",
+      "계좌번호 소유자가 변경됨",
+      "개인정보가 포함됨",
+      "중복으로 등록됨",
+      "기타",
+    ];
+  const [reason, setReason] = useState(defaultReason);
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [pending, setPending] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   async function submitRequest() {
     setPending(true);
     setError(null);
+
+    const targetError = validateTargetLength(targetNormalized ?? target);
+    if (targetError) {
+      setError(targetError);
+      setPending(false);
+      return;
+    }
+
+    const descriptionError = validatePlainText(description);
+    if (descriptionError) {
+      setError(descriptionError);
+      setPending(false);
+      return;
+    }
+
+    const contactError = validatePlainText(contact);
+    if (contactError) {
+      setError(contactError);
+      setPending(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/deletion-requests", {
@@ -29,6 +74,7 @@ export function DeletionRequestForm({
         body: JSON.stringify({
           targetType,
           targetLabel: target,
+          targetNormalized,
           reason,
           description,
           contact,
@@ -41,9 +87,9 @@ export function DeletionRequestForm({
         throw new Error(payload.error ?? "삭제 요청을 접수하지 못했습니다.");
       }
 
-      setSubmitted(true);
-      setDescription("");
-      setContact("");
+      router.push(
+        `/request-delete/complete?type=${encodeURIComponent(targetType)}&target=${encodeURIComponent(target)}`,
+      );
     } catch (fetchError) {
       setError(
         fetchError instanceof Error ? fetchError.message : "삭제 요청을 접수하지 못했습니다.",
@@ -56,21 +102,17 @@ export function DeletionRequestForm({
   return (
     <section className="panel-block" aria-labelledby="deletion-title">
       <h2 className="panel-title" id="deletion-title">
-        삭제 요청
+        {title}
       </h2>
       <p className="section-copy">
-        {target}에 잘못된 정보가 등록되었거나 소유자 변경 등 검토가 필요한 경우 삭제 요청을
-        보낼 수 있습니다.
+        {intro ??
+          `${target}에 잘못된 정보가 등록되었거나 소유자 변경 등 검토가 필요한 경우 삭제 요청을 보낼 수 있습니다.`}
       </p>
       <div className="field-stack">
         <select className="select" value={reason} onChange={(event) => setReason(event.target.value)}>
-          <option>잘못된 정보가 등록됨</option>
-          <option>허위 의견이 등록됨</option>
-          <option>전화번호 소유자가 변경됨</option>
-          <option>계좌번호 소유자가 변경됨</option>
-          <option>개인정보가 포함됨</option>
-          <option>중복으로 등록됨</option>
-          <option>기타</option>
+          {options.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
         </select>
         <textarea
           className="textarea"
@@ -89,15 +131,10 @@ export function DeletionRequestForm({
         </div>
         <div className="button-row">
           <button className="button" type="button" onClick={submitRequest} disabled={pending}>
-            {pending ? "접수 중..." : "삭제 요청 접수"}
+            {pending ? "접수 중..." : submitLabel}
           </button>
         </div>
         {error ? <div className="inline-notice inline-notice--warning">{error}</div> : null}
-        {submitted && (
-          <div className="inline-notice inline-notice--success">
-            삭제 요청이 접수되었습니다. 관리자가 내용을 검토한 뒤 처리 상태를 결정합니다.
-          </div>
-        )}
       </div>
     </section>
   );

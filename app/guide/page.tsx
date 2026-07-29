@@ -9,7 +9,7 @@ export default function GuidePage() {
         <div className="subpage-heading">
           <h1 className="subpage-title">이용 안내</h1>
           <p className="section-copy">
-            Lao Scam Number는 전화번호와 계좌번호에 대한 사용자 신고 내역을 빠르게 조회하기 위한
+            Lao Safe는 전화번호와 계좌번호에 대한 사용자 신고 내역을 빠르게 조회하기 위한
             서비스입니다.
           </p>
         </div>
