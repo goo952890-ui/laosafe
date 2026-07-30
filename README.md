@@ -33,6 +33,44 @@ npm run build
 - `npm run build`
 - `npm test`
 - `npm run lint`
+- `npm run cf:deploy`
+
+## Cloudflare Git Deployment
+
+Cloudflare Workers Git 자동배포로 운영하려면 아래 순서로 연결한다.
+
+1. Cloudflare 대시보드에서 `Workers & Pages`로 이동한다.
+2. `Create application` > `Import a repository`를 선택한다.
+3. GitHub 계정을 연결하고 `goo952890-ui/laosafe` 저장소를 선택한다.
+4. Production branch는 `main`으로 둔다.
+5. Build command는 `npm run build`를 입력한다.
+6. Deploy command는 비워 두거나 기본 자동 감지를 사용한다.
+7. Root directory는 `/`를 사용한다.
+8. 환경변수와 시크릿은 Cloudflare 대시보드 `Settings > Variables and Secrets`에 등록한다.
+
+권장 변수 구성:
+
+- 일반 변수
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+  - `ADMIN_USERNAME`
+  - `TELEGRAM_REPORT_CHAT_ID`
+  - `TELEGRAM_COMMENT_CHAT_ID`
+  - `TELEGRAM_DELETION_CHAT_ID`
+- 시크릿
+  - `SUPABASE_SECRET_KEY`
+  - `ADMIN_PASSWORD`
+  - `ADMIN_SESSION_SECRET`
+  - `TELEGRAM_REPORT_BOT_TOKEN`
+  - `TELEGRAM_COMMENT_BOT_TOKEN`
+  - `TELEGRAM_DELETION_BOT_TOKEN`
+
+로컬에서 직접 배포할 때는 아래 명령을 사용한다.
+
+```bash
+npx wrangler login
+npm run cf:deploy
+```
 
 ## Notes
 
