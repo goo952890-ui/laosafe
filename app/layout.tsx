@@ -46,16 +46,22 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body className={notoSansLao.variable}>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-EXF7J7RL0V"
-          strategy="afterInteractive"
-        />
         <Script id="google-analytics" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-EXF7J7RL0V');
+            (function() {
+              var allowedHosts = ['laowho.com', 'www.laowho.com'];
+              if (!allowedHosts.includes(window.location.hostname)) return;
+
+              window.dataLayer = window.dataLayer || [];
+              window.gtag = function(){window.dataLayer.push(arguments);};
+              window.gtag('js', new Date());
+              window.gtag('config', 'G-EXF7J7RL0V');
+
+              var script = document.createElement('script');
+              script.async = true;
+              script.src = 'https://www.googletagmanager.com/gtag/js?id=G-EXF7J7RL0V';
+              document.head.appendChild(script);
+            })();
           `}
         </Script>
         {children}
