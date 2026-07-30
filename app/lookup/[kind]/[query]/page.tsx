@@ -106,6 +106,13 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
   const typeLabel = lookupSeoTypeLabel(locale, kind, rawQuery, result.normalized);
   const canonicalPath = `/lookup/${kind}/${encodeURIComponent(result.normalized || rawQuery)}`;
   const pageUrl = buildLocalizedUrl(canonicalPath, locale);
+  const seoTitle = buildLookupSeoTitle({
+    locale,
+    kind,
+    rawQuery,
+    detailDisplay,
+    normalized: result.normalized,
+  });
   const seoDescription = buildLookupSeoDescription({
     locale,
     detailDisplay,
@@ -147,7 +154,7 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
                 "@type": "WebPage",
                 "@id": `${pageUrl}#webpage`,
                 url: pageUrl,
-                name: `${detailDisplay} | Lao Safe`,
+                name: seoTitle,
                 description: seoDescription,
                 inLanguage: locale,
                 isPartOf: {
@@ -336,7 +343,13 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
     return buildPageMetadata({
       locale,
       path: canonicalPath,
-      title: `${truncateSeoText(detailDisplay, 80)} | Lao Safe`,
+      title: buildLookupSeoTitle({
+        locale,
+        kind,
+        rawQuery,
+        detailDisplay,
+        normalized: normalizedPathValue,
+      }),
       description: buildLookupSeoDescription({
         locale,
         detailDisplay,
@@ -353,7 +366,13 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
     return buildPageMetadata({
       locale,
       path: canonicalPath,
-      title: `${truncateSeoText(detailDisplay, 80)} | Lao Safe`,
+      title: buildLookupSeoTitle({
+        locale,
+        kind,
+        rawQuery,
+        detailDisplay,
+        normalized: normalizedPathValue,
+      }),
       description: buildLookupSeoDescription({
         locale,
         detailDisplay,
@@ -382,7 +401,13 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
   return buildPageMetadata({
     locale,
     path: canonicalPath,
-    title: `${truncateSeoText(result.found.display, 80)} | Lao Safe`,
+    title: buildLookupSeoTitle({
+      locale,
+      kind,
+      rawQuery,
+      detailDisplay: result.found.display,
+      normalized: normalizedPathValue,
+    }),
     description,
   });
 }
@@ -415,6 +440,47 @@ function lookupSeoTypeLabel(
   }
 
   return getTypeLabel(locale, "account");
+}
+
+function buildLookupSeoTitle({
+  locale,
+  kind,
+  rawQuery,
+  detailDisplay,
+  normalized,
+}: {
+  locale: UserLocale;
+  kind: LookupKind;
+  rawQuery: string;
+  detailDisplay: string;
+  normalized: string;
+}) {
+  const isQrLookup = kind === "account" && (extractQrPayload(rawQuery) || normalized.startsWith("qr:"));
+
+  if (isQrLookup && (!detailDisplay || detailDisplay === normalized || normalized.startsWith("qr:"))) {
+    return `${lookupInfoLabel(locale, "qr")} | Lao Safe`;
+  }
+
+  const number = truncateSeoText(detailDisplay, 60);
+  const infoLabel = lookupInfoLabel(locale, kind === "phone" ? "phone" : "account");
+  return `${number} / ${number} ${infoLabel} | Lao Safe`;
+}
+
+function lookupInfoLabel(locale: UserLocale, type: "phone" | "account" | "qr") {
+  switch (locale) {
+    case "ko":
+      if (type === "phone") return "번호 정보";
+      if (type === "account") return "계좌번호 정보";
+      return "QR 정보";
+    case "en":
+      if (type === "phone") return "Phone Number Info";
+      if (type === "account") return "Account Info";
+      return "QR Info";
+    default:
+      if (type === "phone") return "ຂໍ້ມູນເບີໂທ";
+      if (type === "account") return "ຂໍ້ມູນເລກບັນຊີ";
+      return "ຂໍ້ມູນ QR";
+  }
 }
 
 function buildLookupSeoDescription({
