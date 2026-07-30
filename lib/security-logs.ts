@@ -1,7 +1,11 @@
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 
 export type SecurityLogType = "input_validation_failed" | "abnormal_ip_blocked";
-export type SecurityLogSource = "evaluation" | "deletion_request" | "lookup_rate_limit";
+export type SecurityLogSource =
+  | "evaluation"
+  | "deletion_request"
+  | "lookup_rate_limit"
+  | "contact_inquiry";
 
 export type SecurityLogRow = {
   id: number;

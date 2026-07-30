@@ -2,38 +2,37 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import { validatePlainText, validateTargetLength } from "@/lib/input-validation";
 
 export function DeletionRequestForm({
   target,
   targetNormalized,
   targetType,
-  title = "삭제 요청",
+  locale,
+  title,
   intro,
-  submitLabel = "삭제 요청 접수",
-  defaultReason = "잘못된 정보가 등록됨",
+  submitLabel,
+  defaultReason,
   reasonOptions,
 }: {
   target: string;
   targetNormalized?: string;
   targetType: "phone" | "account";
+  locale: UserLocale;
   title?: string;
   intro?: string;
   submitLabel?: string;
   defaultReason?: string;
   reasonOptions?: string[];
 }) {
+  const copy = getUserDictionary(locale);
+  const resolvedTitle = title ?? copy.deletion.title;
+  const resolvedSubmitLabel = submitLabel ?? copy.deletion.submit;
+  const resolvedDefaultReason = defaultReason ?? copy.deletion.reasons[0];
   const options =
-    reasonOptions ?? [
-      "잘못된 정보가 등록됨",
-      "허위 의견이 등록됨",
-      "전화번호 소유자가 변경됨",
-      "계좌번호 소유자가 변경됨",
-      "개인정보가 포함됨",
-      "중복으로 등록됨",
-      "기타",
-    ];
-  const [reason, setReason] = useState(defaultReason);
+    reasonOptions ?? copy.deletion.reasons;
+  const [reason, setReason] = useState(resolvedDefaultReason);
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [pending, setPending] = useState(false);
@@ -44,21 +43,21 @@ export function DeletionRequestForm({
     setPending(true);
     setError(null);
 
-    const targetError = validateTargetLength(targetNormalized ?? target);
+    const targetError = validateTargetLength(targetNormalized ?? target, locale);
     if (targetError) {
       setError(targetError);
       setPending(false);
       return;
     }
 
-    const descriptionError = validatePlainText(description);
+    const descriptionError = validatePlainText(description, true, locale);
     if (descriptionError) {
       setError(descriptionError);
       setPending(false);
       return;
     }
 
-    const contactError = validatePlainText(contact);
+    const contactError = validatePlainText(contact, true, locale);
     if (contactError) {
       setError(contactError);
       setPending(false);
@@ -78,13 +77,14 @@ export function DeletionRequestForm({
           reason,
           description,
           contact,
+          locale,
         }),
       });
 
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "삭제 요청을 접수하지 못했습니다.");
+        throw new Error(payload.error ?? copy.deletion.submitError);
       }
 
       const summary = description.trim() || reason;
@@ -93,7 +93,7 @@ export function DeletionRequestForm({
       );
     } catch (fetchError) {
       setError(
-        fetchError instanceof Error ? fetchError.message : "삭제 요청을 접수하지 못했습니다.",
+        fetchError instanceof Error ? fetchError.message : copy.deletion.submitError,
       );
     } finally {
       setPending(false);
@@ -103,12 +103,9 @@ export function DeletionRequestForm({
   return (
     <section className="panel-block" aria-labelledby="deletion-title">
       <h2 className="panel-title" id="deletion-title">
-        {title}
+        {resolvedTitle}
       </h2>
-      <p className="section-copy">
-        {intro ??
-          `${target}에 잘못된 정보가 등록되었거나 소유자 변경 등 검토가 필요한 경우 삭제 요청을 보낼 수 있습니다.`}
-      </p>
+      <p className="section-copy">{intro ?? `${target}${copy.deletion.introSuffix}`}</p>
       <div className="field-stack">
         <select className="select" value={reason} onChange={(event) => setReason(event.target.value)}>
           {options.map((option) => (
@@ -117,22 +114,22 @@ export function DeletionRequestForm({
         </select>
         <textarea
           className="textarea"
-          placeholder="삭제 요청 사유와 상세 설명을 입력해 주세요."
+          placeholder={copy.deletion.detailPlaceholder}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
         <input
           className="input"
-          placeholder="연락 가능한 이메일 또는 전화번호"
+          placeholder={copy.deletion.contactPlaceholder}
           value={contact}
           onChange={(event) => setContact(event.target.value)}
         />
         <div className="inline-notice inline-notice--warning">
-          삭제 요청 접수와 악의적인 반복 요청 방지를 위해 IP 주소 및 접속정보가 저장됩니다.
+          {copy.deletion.ipNotice}
         </div>
         <div className="button-row">
           <button className="button" type="button" onClick={submitRequest} disabled={pending}>
-            {pending ? "접수 중..." : submitLabel}
+            {pending ? copy.deletion.pending : resolvedSubmitLabel}
           </button>
         </div>
         {error ? <div className="inline-notice inline-notice--warning">{error}</div> : null}

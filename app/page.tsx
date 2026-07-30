@@ -4,13 +4,17 @@ import { unstable_noStore as noStore } from "next/cache";
 import { SearchTabs } from "@/components/SearchTabs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getTypeLabel, getUserDictionary, type UserLocale } from "@/lib/i18n";
 import { getHomeStats, getRecentTargets } from "@/lib/site-repository";
 import { maskAccountDisplay } from "@/lib/site-utils";
+import { getUserLocale } from "@/lib/user-locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   noStore();
+  const locale = await getUserLocale();
+  const copy = getUserDictionary(locale);
   const [recentTargets, homeStats] = await Promise.all([
     getRecentTargets().then((items) => items.slice(0, 5)),
     getHomeStats(),
@@ -18,61 +22,55 @@ export default async function Home() {
 
   return (
     <main className="page-shell">
-      <SiteHeader />
+      <SiteHeader locale={locale} />
 
       <section className="hero-section">
         <div className="hero-copy-block">
-          <h1 className="hero-title">모르는 번호, Lao Safe에서 확인하세요</h1>
-          <p className="hero-subtitle">더 많은 사람들이 함께 만드는 안전한 전화·계좌 정보</p>
-          <SearchTabs />
+          <h1 className="hero-title">{copy.home.title}</h1>
+          <p className="hero-subtitle">{copy.home.subtitle}</p>
+          <SearchTabs locale={locale} />
         </div>
       </section>
 
-      <section className="stats-strip">
+      <section className="stats-strip stats-strip--summary">
         <div className="stat-strip-item">
-          <span className="stat-strip-label">등록된 번호</span>
-          <strong>{formatNumber(homeStats.totalReports)}</strong>
+          <span className="stat-strip-label">{copy.home.totalRegistered}</span>
+          <strong>{formatNumber(homeStats.totalReports, locale)}</strong>
         </div>
         <div className="stat-strip-item">
-          <span className="stat-strip-label">안전한 번호</span>
-          <strong>{formatNumber(homeStats.safeTargets)}</strong>
-        </div>
-        <div className="stat-strip-item">
-          <span className="stat-strip-label">스팸 의심 번호</span>
-          <strong>{formatNumber(homeStats.spamTargets)}</strong>
-        </div>
-        <div className="stat-strip-item">
-          <span className="stat-strip-label">오늘 신규 제보</span>
-          <strong>{formatNumber(homeStats.todayReports)}</strong>
+          <span className="stat-strip-label">{copy.home.todayReports}</span>
+          <strong>{formatNumber(homeStats.todayReports, locale)}</strong>
         </div>
       </section>
 
       <section className="home-columns home-columns--single">
         <article className="board-section">
           <div className="board-header">
-            <h2 className="board-title">최근 등록된 번호</h2>
+            <h2 className="board-title">{copy.home.recentTitle}</h2>
             <Link href="/recent" className="board-link">
-              더보기
+              {copy.common.more}
             </Link>
           </div>
           <div className="board-table">
             <div className="board-table-head board-table-head--recent">
-              <span>번호</span>
-              <span>유형</span>
-              <span>의견</span>
-              <span>등록일</span>
+              <span>{copy.home.columns.number}</span>
+              <span>{copy.home.columns.type}</span>
+              <span>{copy.home.columns.opinion}</span>
+              <span>{copy.home.columns.date}</span>
             </div>
             {recentTargets.map(({ target, latest }) => {
               const typeLabel =
                 target.kind === "phone"
-                  ? "전화번호"
+                  ? getTypeLabel(locale, "phone")
                   : target.normalized.startsWith("qr:")
-                    ? "QR"
-                    : "계좌번호";
+                    ? getTypeLabel(locale, "qr")
+                    : getTypeLabel(locale, "account");
               const display =
-                target.kind === "account"
-                  ? maskAccountDisplay(target.display)
-                  : target.display;
+                target.kind === "phone"
+                  ? maskRecentPhoneDisplay(target.display)
+                  : target.kind === "account"
+                    ? maskAccountDisplay(target.display)
+                    : target.display;
 
               return (
                 <Link
@@ -93,11 +91,26 @@ export default async function Home() {
         </article>
       </section>
 
-      <SiteFooter />
+      <SiteFooter locale={locale} />
     </main>
   );
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("ko-KR").format(value);
+function formatNumber(value: number, locale: UserLocale) {
+  const intlLocale = locale === "lo" ? "lo-LA" : locale === "en" ? "en-US" : "ko-KR";
+  return new Intl.NumberFormat(intlLocale).format(value);
+}
+
+function maskRecentPhoneDisplay(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length < 7) {
+    return value;
+  }
+
+  if (digits.length <= 8) {
+    return `${digits.slice(0, 3)}${"*".repeat(Math.max(2, digits.length - 5))}${digits.slice(-2)}`;
+  }
+
+  return `${digits.slice(0, 4)}${"*".repeat(Math.max(3, digits.length - 7))}${digits.slice(-3)}`;
 }

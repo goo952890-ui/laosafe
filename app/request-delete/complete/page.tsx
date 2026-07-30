@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getUserDictionary } from "@/lib/i18n";
+import { getUserLocale } from "@/lib/user-locale";
 
 interface PageProps {
   searchParams: Promise<{
@@ -12,49 +14,49 @@ interface PageProps {
 }
 
 export default async function DeleteRequestCompletePage({ searchParams }: PageProps) {
+  const locale = await getUserLocale();
+  const copy = getUserDictionary(locale);
   const resolved = await searchParams;
   const target = resolved.target ? decodeURIComponent(resolved.target) : null;
   const content = resolved.content ? decodeURIComponent(resolved.content) : null;
-  const typeLabel = resolved.type === "account" ? "계좌번호" : "전화번호";
+  const typeLabel = resolved.type === "account" ? copy.reportComposer.accountInput : copy.reportComposer.phoneInput;
 
   return (
     <main className="page-shell">
-      <SiteHeader />
+      <SiteHeader locale={locale} />
       <section className="subpage-section">
         <div className="subpage-heading">
-          <h1 className="subpage-title">삭제 요청이 완료되었습니다.</h1>
+          <h1 className="subpage-title">{copy.deletion.completeTitle}</h1>
           <p className="section-copy">
             {target
-              ? `${typeLabel} ${target}에 대한 삭제 요청이 정상적으로 접수되었습니다.`
-              : "삭제 요청이 정상적으로 접수되었습니다."}
+              ? `${typeLabel} ${target}`
+              : copy.deletion.completeTitle}
           </p>
         </div>
         <div className="request-panel">
           <div className="panel-block">
-            <p className="body-copy">
-              운영자가 내용을 검토한 뒤 삭제 여부를 판단합니다. 필요한 경우 입력한 연락처로 추가 안내를 드릴 수 있습니다.
-            </p>
+            <p className="body-copy">{copy.deletion.completeBody}</p>
             <div className="field-stack">
               {target ? (
                 <p className="body-copy">
-                  <strong>삭제 요청 번호:</strong> {target}
+                  <strong>{copy.deletion.requestedNumber}:</strong> {target}
                 </p>
               ) : null}
               {content ? (
                 <p className="body-copy">
-                  <strong>내용:</strong> {content}
+                  <strong>{copy.deletion.content}:</strong> {content}
                 </p>
               ) : null}
             </div>
             <div className="button-row">
               <Link href="/" className="button button-secondary">
-                메인으로 돌아가기
+                {copy.common.backToHome}
               </Link>
             </div>
           </div>
         </div>
       </section>
-      <SiteFooter />
+      <SiteFooter locale={locale} />
     </main>
   );
 }

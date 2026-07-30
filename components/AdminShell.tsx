@@ -65,6 +65,9 @@ export function AdminShell({
             <NavItem href="/admin/list/objections" active={pathname.startsWith("/admin/list/objections")}>
               번호 삭제 이의
             </NavItem>
+            <NavItem href="/admin/list/inquiries" active={pathname.startsWith("/admin/list/inquiries")}>
+              문의하기
+            </NavItem>
           </div>
 
           <div className="admin-sidebar-group">
@@ -84,8 +87,15 @@ export function AdminShell({
           </div>
 
           <div className="admin-sidebar-group">
+            <div className="admin-sidebar-group-title">사이트 관리</div>
+            <NavItem href="/admin/terms" active={pathname.startsWith("/admin/terms")}>
+              이용약관
+            </NavItem>
+          </div>
+
+          <div className="admin-sidebar-group">
           <div className="admin-sidebar-guide">
-              등록된 번호, 안전번호 요청, 의견, 삭제 요청을 이 화면에서 검토하고 숨김 여부를 관리합니다.
+              등록된 번호, 안전번호 요청, 의견, 삭제 요청, 문의 내용을 이 화면에서 검토하고 숨김 여부를 관리합니다.
           </div>
           </div>
         </aside>

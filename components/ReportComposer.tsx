@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { EvaluationForm } from "@/components/EvaluationForm";
+import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import { scanQrPayloadFromFile } from "@/lib/qr-scan-client";
 import {
   formatAccountDisplay,
@@ -20,14 +21,17 @@ type ScanState =
   | { kind: "error"; message: string };
 
 export function ReportComposer({
+  locale,
   initialQuery = "",
   initialMode = "text",
   hiddenQuery = false,
 }: {
+  locale: UserLocale;
   initialQuery?: string;
   initialMode?: "text" | "qr";
   hiddenQuery?: boolean;
 }) {
+  const copy = getUserDictionary(locale);
   const isLockedQuery = initialQuery.length > 0;
   const initialQrPayload =
     initialMode === "qr" && initialQuery.startsWith("qr:") ? formatAccountDisplay(initialQuery) : null;
@@ -51,7 +55,7 @@ export function ReportComposer({
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setScanState({
         kind: "error",
-        message: "JPG, JPEG, PNG, WEBP 이미지만 업로드할 수 있습니다.",
+        message: copy.home.qrImageTypeError,
       });
       return;
     }
@@ -64,7 +68,7 @@ export function ReportComposer({
       if (!payload) {
         setScanState({
           kind: "error",
-          message: "이미지에서 QR코드를 찾을 수 없습니다.",
+          message: copy.home.qrNotFound,
         });
         return;
       }
@@ -73,7 +77,7 @@ export function ReportComposer({
     } catch {
       setScanState({
         kind: "error",
-        message: "이미지를 처리하는 중 문제가 발생했습니다.",
+        message: copy.home.qrError,
       });
     }
   }
@@ -82,7 +86,7 @@ export function ReportComposer({
     <section className="request-panel">
       {isLockedQuery ? (
         <div className="field-stack">
-          <label className="field-label">조회한 번호</label>
+          <label className="field-label">{copy.reportComposer.lookedUpNumber}</label>
           <div className="report-target-box">
             <strong>
               {initialMode === "qr"
@@ -98,14 +102,14 @@ export function ReportComposer({
       {!isLockedQuery && targetKind === "phone" ? (
         <div className="field-stack">
           <label className="field-label" htmlFor="report-phone">
-            전화번호
+            {copy.reportComposer.phoneInput}
           </label>
           <input
             id="report-phone"
             className="input"
             value={textValue}
             onChange={(event) => setTextValue(event.target.value)}
-            placeholder="예) 2055551234 또는 8562055551234"
+            placeholder={copy.reportComposer.phonePlaceholder}
           />
         </div>
       ) : null}
@@ -113,14 +117,14 @@ export function ReportComposer({
       {!isLockedQuery && targetKind === "account" ? (
         <div className="field-stack">
           <label className="field-label" htmlFor="report-account">
-            계좌번호
+            {copy.reportComposer.accountInput}
           </label>
           <input
             id="report-account"
             className="input"
             value={textValue}
             onChange={(event) => setTextValue(event.target.value)}
-            placeholder="예) 010123456789"
+            placeholder={copy.reportComposer.accountPlaceholder}
           />
         </div>
       ) : null}
@@ -128,7 +132,7 @@ export function ReportComposer({
       {!isLockedQuery && targetKind === "qr" ? (
         <div className="field-stack">
           <label className="field-label" htmlFor="report-qr">
-            QR코드 이미지
+            {copy.reportComposer.qrInput}
           </label>
           <input
             id="report-qr"
@@ -138,11 +142,11 @@ export function ReportComposer({
             onChange={(event) => onQrFileChange(event.target.files?.[0] ?? null)}
           />
           {scanState.kind === "working" ? (
-            <div className="inline-notice">QR코드를 분석하는 중입니다.</div>
+            <div className="inline-notice">{copy.reportComposer.qrScanning}</div>
           ) : null}
           {scanState.kind === "success" ? (
             <div className="inline-notice inline-notice--success">
-              QR코드 텍스트를 확인했습니다. 이 내용으로 제보를 등록할 수 있습니다.
+              {copy.reportComposer.qrReady}
             </div>
           ) : null}
           {scanState.kind === "error" ? (
@@ -153,8 +157,8 @@ export function ReportComposer({
 
       {hiddenQuery ? (
         <div className="result-status-box">
-          <p className="body-copy">이 번호는 제보된 번호이나 관리자에 의해 숨김처리된 번호입니다.</p>
-          <p className="body-copy">숨김된 번호는 사용자 화면에서 추가 제보를 등록할 수 없습니다.</p>
+          <p className="body-copy">{copy.reportComposer.hiddenA}</p>
+          <p className="body-copy">{copy.reportComposer.hiddenB}</p>
         </div>
       ) : target ? (
         <>
@@ -165,13 +169,14 @@ export function ReportComposer({
           ) : null}
           <div className="report-form-section">
             <EvaluationForm
-              label="이 번호"
-              title="제보 작성"
-              submitLabel="제보하기"
+              locale={locale}
+              label={copy.common.target}
+              title={copy.form.reportTitle}
+              submitLabel={copy.form.reportSubmit}
               requireComment
               allowEvaluationChoice
               requireSafeApproval
-              safeApprovalNotice="안전번호 제보는 관리자가 검토한 뒤 공식 번호로 확인되는 경우에만 승인됩니다."
+              safeApprovalNotice={copy.form.safeApproval}
               showIdentityFields={false}
               requirePassword={false}
               submissionType="report"
@@ -183,7 +188,7 @@ export function ReportComposer({
               pendingRedirectPath={`/lookup/${target.kind}/${encodeURIComponent(target.normalized)}?review=safe`}
               topFields={
                 <div className="field-stack">
-                  <span className="field-label">번호 유형</span>
+                  <span className="field-label">{copy.common.numberType}</span>
                   <div className="sub-switch report-kind-switch">
                     <button
                       type="button"
@@ -191,7 +196,7 @@ export function ReportComposer({
                       onClick={() => setTargetKind("phone")}
                       disabled={initialMode === "qr"}
                     >
-                      전화번호
+                      {copy.reportComposer.phoneInput}
                     </button>
                     <button
                       type="button"
@@ -199,7 +204,7 @@ export function ReportComposer({
                       onClick={() => setTargetKind("account")}
                       disabled={initialMode === "qr"}
                     >
-                      계좌번호
+                      {copy.reportComposer.accountInput}
                     </button>
                     <button
                       type="button"
@@ -207,7 +212,7 @@ export function ReportComposer({
                       onClick={() => setTargetKind("qr")}
                       disabled={initialMode === "text" && isLockedQuery}
                     >
-                      QR이미지
+                      {copy.reportComposer.qrInput}
                     </button>
                   </div>
                 </div>
@@ -217,11 +222,9 @@ export function ReportComposer({
         </>
       ) : (
         <div className="report-empty-box">
-          <p className="body-copy">
-            전화번호, 계좌번호 또는 QR이미지 유형을 먼저 선택한 뒤 제보 내용을 입력해 주세요.
-          </p>
+          <p className="body-copy">{copy.reportComposer.empty}</p>
           <Link href="/guide" className="detail-action-link">
-            이용 안내 보기
+            {copy.reportComposer.guide}
           </Link>
         </div>
       )}

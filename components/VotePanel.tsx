@@ -2,8 +2,10 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 
 export function VotePanel({
+  locale,
   targetType,
   targetDisplay,
   targetNormalized,
@@ -11,6 +13,7 @@ export function VotePanel({
   spamCount,
   safeCount,
 }: {
+  locale: UserLocale;
   targetType: "phone" | "account";
   targetDisplay: string;
   targetNormalized: string;
@@ -20,6 +23,7 @@ export function VotePanel({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const copy = getUserDictionary(locale);
   const [pending, setPending] = useState<"spam" | "safe" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,19 +46,20 @@ export function VotePanel({
           qrPayload,
           comment: "",
           evaluation,
+          locale,
         }),
       });
 
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "투표를 등록하지 못했습니다.");
+        throw new Error(payload.error ?? copy.vote.error);
       }
 
       router.replace(pathname);
       router.refresh();
     } catch (voteError) {
-      setError(voteError instanceof Error ? voteError.message : "투표를 등록하지 못했습니다.");
+      setError(voteError instanceof Error ? voteError.message : copy.vote.error);
     } finally {
       setPending(null);
     }
@@ -63,7 +68,7 @@ export function VotePanel({
   return (
     <section className="vote-panel">
       <div className="vote-panel-header">
-        <strong>이 번호는 어떤가요?</strong>
+        <strong>{copy.vote.title}</strong>
       </div>
       <div className="vote-stat-row">
         <button
@@ -74,7 +79,7 @@ export function VotePanel({
         >
           <span className="vote-card-icon" aria-hidden="true">✖</span>
           <span className="vote-card-inline">
-            <span className="vote-card-label">스팸</span>
+            <span className="vote-card-label">{copy.vote.spam}</span>
             <strong>{spamCount}</strong>
           </span>
         </button>
@@ -86,7 +91,7 @@ export function VotePanel({
         >
           <span className="vote-card-icon" aria-hidden="true">✔</span>
           <span className="vote-card-inline">
-            <span className="vote-card-label">안전</span>
+            <span className="vote-card-label">{copy.vote.safe}</span>
             <strong>{safeCount}</strong>
           </span>
         </button>

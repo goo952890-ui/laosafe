@@ -93,7 +93,7 @@ create table if not exists public.security_logs (
   log_type text not null
     check (log_type in ('input_validation_failed', 'abnormal_ip_blocked')),
   source text not null
-    check (source in ('evaluation', 'deletion_request', 'lookup_rate_limit')),
+    check (source in ('evaluation', 'deletion_request', 'lookup_rate_limit', 'contact_inquiry')),
   target_type text
     check (target_type in ('phone', 'bank_account')),
   target_value text,
@@ -105,3 +105,20 @@ create table if not exists public.security_logs (
 
 create index if not exists security_logs_log_type_created_at_idx
   on public.security_logs (log_type, created_at desc);
+
+create table if not exists public.site_contents (
+  key text primary key,
+  content text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.contact_inquiries (
+  id bigint generated always as identity primary key,
+  name text not null,
+  email text not null,
+  message text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists contact_inquiries_created_at_idx
+  on public.contact_inquiries (created_at desc);

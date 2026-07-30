@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/admin-auth";
 import { AdminShell } from "@/components/AdminShell";
+import { getAdminInquiriesPage } from "@/lib/content-repository";
 import { parseEvaluationMeta } from "@/lib/evaluation-meta";
 import { getAdminListPage } from "@/lib/site-repository";
 import { normalizeAccountLookupKey, normalizePhone } from "@/lib/site-utils";
@@ -24,6 +25,14 @@ export default async function AdminListPage({
   await requireAdminSession();
   const resolved = await params;
   const query = await searchParams;
+  const listSection = resolved.section as
+    | "targets"
+    | "comments"
+    | "safe-requests"
+    | "requests"
+    | "objections"
+    | "input-failures"
+    | "abnormal-ips";
 
   if (
     resolved.section !== "targets" &&
@@ -31,6 +40,7 @@ export default async function AdminListPage({
     resolved.section !== "safe-requests" &&
     resolved.section !== "requests" &&
     resolved.section !== "objections" &&
+    resolved.section !== "inquiries" &&
     resolved.section !== "input-failures" &&
     resolved.section !== "abnormal-ips"
   ) {
@@ -38,7 +48,9 @@ export default async function AdminListPage({
   }
 
   const page = Math.max(1, Number(query.page ?? "1") || 1);
-  const data = await getAdminListPage(resolved.section, page, 10);
+  const inquiriesData =
+    resolved.section === "inquiries" ? await getAdminInquiriesPage(page, 10) : null;
+  const data = inquiriesData ?? (await getAdminListPage(listSection, page, 10));
   const pageGroupStart = Math.floor((page - 1) / 10) * 10 + 1;
   const pageGroupEnd = Math.min(data.totalPages, pageGroupStart + 9);
   const pageNumbers = Array.from(
@@ -157,6 +169,28 @@ export default async function AdminListPage({
                   <span className="admin-ellipsis">{item.comment || "(의견 없음)"}</span>
                   <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
                 </Link>
+              ))}
+            </>
+          ) : resolved.section === "inquiries" ? (
+            <>
+              <div className="admin-table-head admin-table-head--inquiries">
+                <span>No</span>
+                <span>이름</span>
+                <span>이메일</span>
+                <span>문의 내용</span>
+                <span>등록일</span>
+              </div>
+              {inquiriesData?.items.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="admin-table-row admin-table-row--inquiries"
+                >
+                  <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
+                  <strong>{item.name}</strong>
+                  <span className="admin-ellipsis">{item.email}</span>
+                  <span className="admin-ellipsis admin-ellipsis--multiline">{item.message}</span>
+                  <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
+                </div>
               ))}
             </>
           ) : resolved.section === "input-failures" || resolved.section === "abnormal-ips" ? (
@@ -290,6 +324,8 @@ function securitySourceLabel(source: "evaluation" | "deletion_request" | "lookup
       return "제보/댓글";
     case "deletion_request":
       return "삭제요청";
+    case "contact_inquiry":
+      return "문의하기";
     default:
       return "조회차단";
   }

@@ -2,20 +2,23 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { hashPassword } from "@/lib/evaluation-meta";
 import { triggerStoredHomeStatsRefresh } from "@/lib/site-stats";
 import { invalidateSiteRepositoryCaches } from "@/lib/site-repository";
+import { normalizeUserLocale } from "@/lib/i18n";
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const payload = (await request.json()) as { password?: string; locale?: string };
+  const locale = normalizeUserLocale(payload.locale);
+
   if (!isSupabaseConfigured()) {
-    return Response.json({ error: "Supabase가 설정되지 않았습니다." }, { status: 500 });
+    return Response.json({ error: locale === "lo" ? "ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ Supabase." : locale === "en" ? "Supabase is not configured." : "Supabase가 설정되지 않았습니다." }, { status: 500 });
   }
 
   const resolved = await params;
-  const payload = (await request.json()) as { password?: string };
 
   if (!payload.password?.trim()) {
-    return Response.json({ error: "비밀번호를 입력해 주세요." }, { status: 400 });
+    return Response.json({ error: locale === "lo" ? "ກະລຸນາກອກລະຫັດຜ່ານ." : locale === "en" ? "Please enter the password." : "비밀번호를 입력해 주세요." }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -30,13 +33,13 @@ export async function DELETE(
   }
 
   if (!row) {
-    return Response.json({ error: "의견을 찾을 수 없습니다." }, { status: 404 });
+    return Response.json({ error: locale === "lo" ? "ບໍ່ພົບຄຳເຫັນ." : locale === "en" ? "Comment not found." : "의견을 찾을 수 없습니다." }, { status: 404 });
   }
 
   const passwordHash = await hashPassword(payload.password.trim());
 
   if (!row.device_fingerprint || row.device_fingerprint !== passwordHash) {
-    return Response.json({ error: "비밀번호가 일치하지 않습니다." }, { status: 403 });
+    return Response.json({ error: locale === "lo" ? "ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ." : locale === "en" ? "Password does not match." : "비밀번호가 일치하지 않습니다." }, { status: 403 });
   }
 
   const { error } = await supabase

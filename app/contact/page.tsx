@@ -1,9 +1,10 @@
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ContactForm } from "@/components/ContactForm";
 import { getUserDictionary } from "@/lib/i18n";
 import { getUserLocale } from "@/lib/user-locale";
 
-export default async function GuidePage() {
+export default async function ContactPage() {
   const locale = await getUserLocale();
   const copy = getUserDictionary(locale);
 
@@ -12,20 +13,10 @@ export default async function GuidePage() {
       <SiteHeader locale={locale} />
       <section className="subpage-section">
         <div className="subpage-heading">
-          <h1 className="subpage-title">{copy.guide.title}</h1>
-          <p className="section-copy">{copy.guide.intro}</p>
+          <h1 className="subpage-title">{copy.contact.title}</h1>
+          <p className="section-copy">{copy.contact.subtitle}</p>
         </div>
-
-        <div className="guide-grid">
-          {copy.guide.items.map(([title, body]) => (
-            <div className="guide-panel" key={title}>
-              <strong>{title}</strong>
-              <p>{body}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="inline-notice inline-notice--warning">{copy.guide.outro}</div>
+        <ContactForm locale={locale} />
       </section>
       <SiteFooter locale={locale} />
     </main>

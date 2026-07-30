@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
+import { Noto_Sans_Lao } from "next/font/google";
+import { getUserLocale } from "@/lib/user-locale";
 import "./globals.css";
 
+const notoSansLao = Noto_Sans_Lao({
+  subsets: ["lao"],
+  weight: ["400", "500", "700"],
+  variable: "--font-lao",
+});
+
 export const metadata: Metadata = {
-  title: "Lao Safe | 라오스 전화번호·계좌번호 조회",
-  description:
-    "라오스 전화번호와 계좌번호를 검색하고, 익명 평가와 의견을 확인할 수 있는 조회 서비스입니다.",
+  title: "Lao Safe",
+  description: "Phone number, account number, and QR lookup service for Laos.",
   icons: {
     icon: [
       { url: "/favicon.svg?v=2", type: "image/svg+xml" },
@@ -15,19 +22,20 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Lao Safe",
-    description:
-      "라오스 전화번호와 계좌번호를 검색하고 익명 평가를 확인하는 조회 서비스",
+    description: "Phone number, account number, and QR lookup service for Laos.",
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getUserLocale();
+
   return (
-    <html lang="ko">
-      <body>{children}</body>
+    <html lang={locale}>
+      <body className={notoSansLao.variable}>{children}</body>
     </html>
   );
 }

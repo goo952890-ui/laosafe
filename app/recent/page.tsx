@@ -3,39 +3,41 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getTypeLabel, getUserDictionary } from "@/lib/i18n";
 import { getRecentTargets } from "@/lib/site-repository";
 import { maskAccountDisplay } from "@/lib/site-utils";
+import { getUserLocale } from "@/lib/user-locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecentPage() {
   noStore();
+  const locale = await getUserLocale();
+  const copy = getUserDictionary(locale);
   const entries = await getRecentTargets();
 
   return (
     <main className="page-shell">
-      <SiteHeader />
+      <SiteHeader locale={locale} />
       <section className="subpage-section">
         <div className="subpage-heading">
-          <h1 className="subpage-title">최근 제보 내역</h1>
-          <p className="section-copy">
-            최근 등록된 전화번호와 계좌번호 제보를 시간순으로 확인할 수 있습니다.
-          </p>
+          <h1 className="subpage-title">{copy.recent.title}</h1>
+          <p className="section-copy">{copy.recent.subtitle}</p>
         </div>
         <div className="board-table">
           <div className="board-table-head board-table-head--recent">
-            <span>번호</span>
-            <span>유형</span>
-            <span>의견</span>
-            <span>등록일</span>
+            <span>{copy.home.columns.number}</span>
+            <span>{copy.home.columns.type}</span>
+            <span>{copy.home.columns.opinion}</span>
+            <span>{copy.home.columns.date}</span>
           </div>
           {entries.map(({ target, latest }) => {
             const typeLabel =
               target.kind === "phone"
-                ? "전화번호"
+                ? getTypeLabel(locale, "phone")
                 : target.normalized.startsWith("qr:")
-                  ? "QR"
-                  : "계좌번호";
+                  ? getTypeLabel(locale, "qr")
+                  : getTypeLabel(locale, "account");
             const display =
               target.kind === "account"
                 ? maskAccountDisplay(target.display)
@@ -58,7 +60,7 @@ export default async function RecentPage() {
           })}
         </div>
       </section>
-      <SiteFooter />
+      <SiteFooter locale={locale} />
     </main>
   );
 }

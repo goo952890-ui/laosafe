@@ -2,6 +2,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { triggerStoredHomeStatsRefresh } from "@/lib/site-stats";
 import { invalidateSiteRepositoryCaches } from "@/lib/site-repository";
 import { hashPassword, serializeEvaluationMeta } from "@/lib/evaluation-meta";
+import { normalizeUserLocale } from "@/lib/i18n";
 import {
   notifyTelegramComment,
   notifyTelegramReport,
@@ -39,13 +40,6 @@ function getRequesterIdentity(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isSupabaseConfigured()) {
-    return Response.json(
-      { error: "Supabase 환경변수가 설정되지 않았습니다." },
-      { status: 500 },
-    );
-  }
-
   const payload = (await request.json()) as {
     targetType?: "phone" | "account";
     targetNormalized?: string;
@@ -59,10 +53,19 @@ export async function POST(request: Request) {
     requirePassword?: boolean;
     requireSafeApproval?: boolean;
     submissionType?: "report" | "comment";
+    locale?: string;
   };
+  const locale = normalizeUserLocale(payload.locale);
+
+  if (!isSupabaseConfigured()) {
+    return Response.json(
+      { error: locale === "lo" ? "ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ Supabase." : locale === "en" ? "Supabase is not configured." : "Supabase 환경변수가 설정되지 않았습니다." },
+      { status: 500 },
+    );
+  }
 
   if (!payload.targetType || !payload.targetNormalized || !payload.targetDisplay) {
-    return Response.json({ error: "대상 정보가 올바르지 않습니다." }, { status: 400 });
+    return Response.json({ error: locale === "lo" ? "ຂໍ້ມູນໝາຍເລກບໍ່ຖືກຕ້ອງ." : locale === "en" ? "Invalid target information." : "대상 정보가 올바르지 않습니다." }, { status: 400 });
   }
   const hasComment = Boolean(payload.comment?.trim());
 
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
   const storeNickname = payload.storeNickname !== false;
 
   if (hasComment && requirePassword && !payload.password?.trim()) {
-    return Response.json({ error: "삭제용 비밀번호를 입력해 주세요." }, { status: 400 });
+    return Response.json({ error: locale === "lo" ? "ກະລຸນາກອກລະຫັດຜ່ານສຳລັບລຶບ." : locale === "en" ? "Please enter the password used for deletion." : "삭제용 비밀번호를 입력해 주세요." }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -86,7 +89,7 @@ export async function POST(request: Request) {
   const createdAt = new Date().toISOString().slice(0, 16).replace("T", " ");
   const targetType = payload.targetType === "phone" ? "phone" : "bank_account";
 
-  const targetError = validateTargetLength(normalized);
+  const targetError = validateTargetLength(normalized, locale);
   if (targetError) {
     await writeSecurityLog({
       logType: "input_validation_failed",
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
   }
 
   if (hasComment) {
-    const commentError = validatePlainText(payload.comment ?? "", requireComment(payload.submissionType));
+    const commentError = validatePlainText(payload.comment ?? "", requireComment(payload.submissionType), locale);
     if (commentError) {
       await writeSecurityLog({
         logType: "input_validation_failed",
@@ -117,7 +120,7 @@ export async function POST(request: Request) {
   }
 
   if (payload.targetType === "account" && payload.qrPayload) {
-    const qrError = validateQrPayload(extractQrPayload(payload.qrPayload) ?? payload.qrPayload);
+    const qrError = validateQrPayload(extractQrPayload(payload.qrPayload) ?? payload.qrPayload, locale);
     if (qrError) {
       await writeSecurityLog({
         logType: "input_validation_failed",
@@ -285,7 +288,7 @@ export async function POST(request: Request) {
           : "visible",
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "평가를 등록하지 못했습니다.";
+    const message = error instanceof Error ? error.message : locale === "lo" ? "ບໍ່ສາມາດບັນທຶກໄດ້." : locale === "en" ? "Failed to submit." : "평가를 등록하지 못했습니다.";
     const friendly = message.includes("relation") || message.includes("Could not find the table")
       ? missingTableMessage()
       : message;

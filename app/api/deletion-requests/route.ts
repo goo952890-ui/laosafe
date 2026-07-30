@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { normalizeUserLocale } from "@/lib/i18n";
 import { validatePlainText, validateTargetLength } from "@/lib/input-validation";
 import { writeSecurityLog } from "@/lib/security-logs";
 import { notifyTelegramDeletionRequest } from "@/lib/telegram-alerts";
@@ -9,13 +10,6 @@ function missingTableMessage() {
 }
 
 export async function POST(request: Request) {
-  if (!isSupabaseConfigured()) {
-    return Response.json(
-      { error: "Supabase 환경변수가 설정되지 않았습니다." },
-      { status: 500 },
-    );
-  }
-
   const payload = (await request.json()) as {
     targetType?: "phone" | "account";
     targetLabel?: string;
@@ -23,10 +17,19 @@ export async function POST(request: Request) {
     reason?: string;
     description?: string;
     contact?: string;
+    locale?: string;
   };
+  const locale = normalizeUserLocale(payload.locale);
+
+  if (!isSupabaseConfigured()) {
+    return Response.json(
+      { error: locale === "lo" ? "ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ Supabase." : locale === "en" ? "Supabase is not configured." : "Supabase 환경변수가 설정되지 않았습니다." },
+      { status: 500 },
+    );
+  }
 
   if (!payload.targetType || !payload.targetLabel || !payload.reason) {
-    return Response.json({ error: "삭제 요청 정보가 올바르지 않습니다." }, { status: 400 });
+    return Response.json({ error: locale === "lo" ? "ຂໍ້ມູນຄຳຂໍລຶບບໍ່ຖືກຕ້ອງ." : locale === "en" ? "Invalid delete request information." : "삭제 요청 정보가 올바르지 않습니다." }, { status: 400 });
   }
 
   const ip =
@@ -42,7 +45,7 @@ export async function POST(request: Request) {
         ? normalizePhone(payload.targetNormalized ?? payload.targetLabel)
         : normalizeAccountLookupKey(payload.targetNormalized ?? payload.targetLabel);
     const targetType = payload.targetType === "phone" ? "phone" : "bank_account";
-    const targetError = validateTargetLength(normalized);
+    const targetError = validateTargetLength(normalized, locale);
     if (targetError) {
       await writeSecurityLog({
         logType: "input_validation_failed",
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
       return Response.json({ error: targetError }, { status: 400 });
     }
 
-    const descriptionError = validatePlainText(payload.description ?? "");
+    const descriptionError = validatePlainText(payload.description ?? "", true, locale);
     if (descriptionError) {
       await writeSecurityLog({
         logType: "input_validation_failed",
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
       return Response.json({ error: descriptionError }, { status: 400 });
     }
 
-    const contactError = validatePlainText(payload.contact ?? "");
+    const contactError = validatePlainText(payload.contact ?? "", true, locale);
     if (contactError) {
       await writeSecurityLog({
         logType: "input_validation_failed",
@@ -114,7 +117,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "삭제 요청을 접수하지 못했습니다.";
+      error instanceof Error ? error.message : locale === "lo" ? "ບໍ່ສາມາດຮັບຄຳຂໍລຶບໄດ້." : locale === "en" ? "Failed to submit the delete request." : "삭제 요청을 접수하지 못했습니다.";
     const friendly = message.includes("relation") || message.includes("Could not find the table")
       ? missingTableMessage()
       : message;

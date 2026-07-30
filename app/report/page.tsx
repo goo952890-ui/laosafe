@@ -1,7 +1,9 @@
 import { ReportComposer } from "@/components/ReportComposer";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getUserDictionary } from "@/lib/i18n";
 import { hasHiddenTargetAny } from "@/lib/site-repository";
+import { getUserLocale } from "@/lib/user-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,8 @@ export default async function ReportHomePage({
 }: {
   searchParams: Promise<{ query?: string; mode?: string }>;
 }) {
+  const locale = await getUserLocale();
+  const copy = getUserDictionary(locale);
   const resolved = await searchParams;
   const query = decodeURIComponent(resolved.query ?? "");
   const mode = resolved.mode === "qr" ? "qr" : "text";
@@ -17,17 +21,15 @@ export default async function ReportHomePage({
 
   return (
     <main className="page-shell">
-      <SiteHeader />
+      <SiteHeader locale={locale} />
       <section className="subpage-section">
         <div className="subpage-heading subpage-heading--stacked">
-          <h1 className="subpage-title">제보하기</h1>
-          <p className="section-copy">
-            전화번호, 계좌번호 또는 QR코드 이미지를 선택해 제보를 등록할 수 있습니다.
-          </p>
+          <h1 className="subpage-title">{copy.reportPage.title}</h1>
+          <p className="section-copy">{copy.reportPage.subtitle}</p>
         </div>
-        <ReportComposer initialQuery={query} initialMode={mode} hiddenQuery={hiddenQuery} />
+        <ReportComposer locale={locale} initialQuery={query} initialMode={mode} hiddenQuery={hiddenQuery} />
       </section>
-      <SiteFooter />
+      <SiteFooter locale={locale} />
     </main>
   );
 }

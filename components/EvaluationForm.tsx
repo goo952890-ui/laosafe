@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { generateNumericNickname } from "@/lib/evaluation-meta";
+import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import {
   validatePlainText,
   validateQrPayload,
@@ -13,6 +14,7 @@ import {
 
 export function EvaluationForm({
   label,
+  locale,
   targetType,
   targetDisplay,
   targetNormalized,
@@ -32,6 +34,7 @@ export function EvaluationForm({
   submissionType,
 }: {
   label: string;
+  locale: UserLocale;
   targetType: "phone" | "account";
   targetDisplay: string;
   targetNormalized: string;
@@ -52,6 +55,7 @@ export function EvaluationForm({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const copy = getUserDictionary(locale);
   const [comment, setComment] = useState("");
   const [nickname, setNickname] = useState(() => generateNumericNickname());
   const [password, setPassword] = useState("");
@@ -65,12 +69,12 @@ export function EvaluationForm({
     setError(null);
 
     if (requireComment && !comment.trim()) {
-      setError("의견을 입력해 주세요.");
+      setError(copy.form.commentRequired);
       setPending(false);
       return;
     }
 
-    const targetError = validateTargetLength(targetNormalized);
+    const targetError = validateTargetLength(targetNormalized, locale);
     if (targetError) {
       setError(targetError);
       setPending(false);
@@ -78,7 +82,7 @@ export function EvaluationForm({
     }
 
     if (comment.trim()) {
-      const commentError = validatePlainText(comment, requireComment);
+      const commentError = validatePlainText(comment, requireComment, locale);
       if (commentError) {
         setError(commentError);
         setPending(false);
@@ -87,7 +91,7 @@ export function EvaluationForm({
     }
 
     if (targetType === "account" && qrPayload) {
-      const qrError = validateQrPayload(qrPayload);
+      const qrError = validateQrPayload(qrPayload, locale);
       if (qrError) {
         setError(qrError);
         setPending(false);
@@ -114,13 +118,14 @@ export function EvaluationForm({
           storeNickname: showIdentityFields,
           requirePassword,
           requireSafeApproval,
+          locale,
         }),
       });
 
       const payload = (await response.json()) as { error?: string; status?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "평가를 등록하지 못했습니다.");
+        throw new Error(payload.error ?? copy.form.submitError);
       }
 
       if (payload.status === "pending") {
@@ -147,7 +152,7 @@ export function EvaluationForm({
       router.replace(pathname);
       router.refresh();
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "평가를 등록하지 못했습니다.");
+      setError(fetchError instanceof Error ? fetchError.message : copy.form.submitError);
     } finally {
       setPending(false);
     }
@@ -162,27 +167,27 @@ export function EvaluationForm({
         {topFields}
         {allowEvaluationChoice ? (
           <div className="field-stack">
-            <span className="field-label">제보 유형</span>
+            <span className="field-label">{copy.common.reportType}</span>
             <div className="evaluation-choice-row">
               <button
                 type="button"
                 className={`evaluation-choice evaluation-choice--spam ${selectedEvaluation === "spam" ? "is-active" : ""}`}
                 onClick={() => setSelectedEvaluation("spam")}
               >
-                스팸 제보
+                {copy.form.spamReport}
               </button>
               <button
                 type="button"
                 className={`evaluation-choice evaluation-choice--safe ${selectedEvaluation === "safe" ? "is-active" : ""}`}
                 onClick={() => setSelectedEvaluation("safe")}
               >
-                안전번호 제보
+                {copy.form.safeReport}
               </button>
             </div>
             {selectedEvaluation === "safe" && requireSafeApproval ? (
               <div className="inline-notice">
                 {safeApprovalNotice ??
-                  "안전번호 제보는 관리자가 검토한 뒤 공식 번호로 확인되는 경우에만 승인됩니다."}
+                  copy.form.safeApproval}
               </div>
             ) : null}
           </div>
@@ -191,13 +196,13 @@ export function EvaluationForm({
           <div className="inline-field-row">
             <div>
               <label className="field-label" htmlFor="nickname-input">
-                닉네임
+                {copy.form.nickname}
               </label>
               <input id="nickname-input" className="input" value={nickname} readOnly />
             </div>
             <div>
               <label className="field-label" htmlFor="password-input">
-                비밀번호
+                {copy.form.password}
               </label>
               <input
                 id="password-input"
@@ -205,29 +210,29 @@ export function EvaluationForm({
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="삭제 시 필요"
+                placeholder={copy.form.passwordPlaceholder}
               />
             </div>
           </div>
         ) : null}
         <label className="field-label" htmlFor="comment-input">
-          설명 또는 사용자 의견
+          {copy.common.description}
         </label>
         <textarea
           id="comment-input"
           className="textarea"
-          placeholder={`${label}에 대한 경험이나 의견을 입력해 주세요.`}
+          placeholder={copy.form.commentPlaceholder.replace("{label}", label)}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
         />
         <p className="form-note">
-          허위 제보 방지를 위해 제보자의 IP 주소가 저장됩니다.
+          {copy.form.ipNotice}
           <br />
-          허위 사실이나 타인의 개인정보를 등록하지 마세요.
+          {copy.form.privacyNotice}
         </p>
         <div className="button-row">
           <button className="button" type="button" onClick={submitEvaluation} disabled={pending}>
-            {pending ? "등록 중..." : submitLabel}
+            {pending ? copy.form.submitting : submitLabel}
           </button>
         </div>
 
@@ -235,8 +240,8 @@ export function EvaluationForm({
         {submitted && (
           <div className="inline-notice inline-notice--success">
             {selectedEvaluation === "safe" && requireSafeApproval
-              ? "안전번호 제보가 접수되었습니다. 관리자 검토 후 공식 번호인 경우에만 승인됩니다."
-              : "제보가 등록되었습니다. 작성한 내용은 서비스 운영정책에 따라 수정, 숨김 또는 삭제될 수 있습니다."}
+              ? copy.form.safePending
+              : copy.form.reportSuccess}
           </div>
         )}
       </div>

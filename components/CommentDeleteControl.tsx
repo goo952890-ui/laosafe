@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 
-export function CommentDeleteControl({ commentId }: { commentId: string }) {
+export function CommentDeleteControl({ commentId, locale }: { commentId: string; locale: UserLocale }) {
   const router = useRouter();
+  const copy = getUserDictionary(locale);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
@@ -20,19 +22,19 @@ export function CommentDeleteControl({ commentId }: { commentId: string }) {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, locale }),
       });
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "삭제하지 못했습니다.");
+        throw new Error(payload.error ?? copy.deletion.submitError);
       }
 
       setOpen(false);
       setPassword("");
       router.refresh();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "삭제하지 못했습니다.");
+      setError(deleteError instanceof Error ? deleteError.message : copy.deletion.submitError);
     } finally {
       setPending(false);
     }
@@ -41,7 +43,7 @@ export function CommentDeleteControl({ commentId }: { commentId: string }) {
   return (
     <div className="comment-delete-control">
       <button className="comment-delete-button" type="button" onClick={() => setOpen((value) => !value)}>
-        삭제
+        {copy.common.delete}
       </button>
       {open ? (
         <div className="delete-inline">
@@ -50,10 +52,10 @@ export function CommentDeleteControl({ commentId }: { commentId: string }) {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="등록 시 입력한 비밀번호"
+            placeholder={copy.form.passwordPlaceholder}
           />
           <button className="button" type="button" disabled={pending} onClick={deleteComment}>
-            {pending ? "삭제 중..." : "삭제 확인"}
+            {pending ? copy.deletion.pending : copy.common.delete}
           </button>
         </div>
       ) : null}

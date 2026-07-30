@@ -28,11 +28,19 @@ export type AdminDeletionRequestRow = {
 export type AdminSecurityLogRow = {
   id: number;
   log_type: "input_validation_failed" | "abnormal_ip_blocked";
-  source: "evaluation" | "deletion_request" | "lookup_rate_limit";
+  source: "evaluation" | "deletion_request" | "lookup_rate_limit" | "contact_inquiry";
   target_type?: "phone" | "bank_account" | null;
   target_value?: string | null;
   ip?: string | null;
   identity_key?: string | null;
   detail?: string | null;
+  created_at: string;
+};
+
+export type AdminInquiryRow = {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
   created_at: string;
 };

@@ -1,31 +1,29 @@
+import { unstable_noStore as noStore } from "next/cache";
+
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { TermsContent } from "@/components/TermsContent";
 import { getUserDictionary } from "@/lib/i18n";
+import { getTermsContent } from "@/lib/content-repository";
 import { getUserLocale } from "@/lib/user-locale";
 
-export default async function GuidePage() {
+export const dynamic = "force-dynamic";
+
+export default async function TermsPage() {
+  noStore();
   const locale = await getUserLocale();
   const copy = getUserDictionary(locale);
+  const content = await getTermsContent(locale);
 
   return (
     <main className="page-shell">
       <SiteHeader locale={locale} />
       <section className="subpage-section">
         <div className="subpage-heading">
-          <h1 className="subpage-title">{copy.guide.title}</h1>
-          <p className="section-copy">{copy.guide.intro}</p>
+          <h1 className="subpage-title">{copy.terms.title}</h1>
+          <p className="section-copy">{copy.terms.subtitle}</p>
         </div>
-
-        <div className="guide-grid">
-          {copy.guide.items.map(([title, body]) => (
-            <div className="guide-panel" key={title}>
-              <strong>{title}</strong>
-              <p>{body}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="inline-notice inline-notice--warning">{copy.guide.outro}</div>
+        <TermsContent content={content} />
       </section>
       <SiteFooter locale={locale} />
     </main>
