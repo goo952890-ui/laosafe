@@ -662,6 +662,56 @@ export async function getRecentTargets() {
   }
 }
 
+export async function getPublicSitemapTargets(limit = 1000) {
+  if (!isSupabaseConfigured()) {
+    return [...phoneTargets, ...accountTargets].slice(0, limit).map((target) => ({
+      kind: target.kind,
+      normalized: target.normalized,
+      updatedAt:
+        [...target.comments]
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.createdAt ?? "2026-07-30",
+    }));
+  }
+
+  const supabase = getSupabaseAdmin();
+  const [phoneRowsResult, accountRowsResult, hiddenKeys] = await Promise.all([
+    supabase
+      .from("phone_numbers")
+      .select("normalized_number, updated_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("bank_accounts")
+      .select("normalized_account_number, updated_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    getHiddenTargetKeys([], []),
+  ]);
+
+  if (phoneRowsResult.error) throw phoneRowsResult.error;
+  if (accountRowsResult.error) throw accountRowsResult.error;
+
+  const phoneItems = ((phoneRowsResult.data ?? []) as Array<Pick<PhoneRow, "normalized_number" | "updated_at" | "created_at">>)
+    .filter((row) => !hiddenKeys.has(`phone-${row.normalized_number}`))
+    .map((row) => ({
+      kind: "phone" as const,
+      normalized: row.normalized_number,
+      updatedAt: row.updated_at ?? row.created_at ?? "2026-07-30",
+    }));
+
+  const accountItems = ((accountRowsResult.data ?? []) as Array<Pick<AccountRow, "normalized_account_number" | "updated_at" | "created_at">>)
+    .filter((row) => !hiddenKeys.has(`bank_account-${row.normalized_account_number}`))
+    .map((row) => ({
+      kind: "account" as const,
+      normalized: row.normalized_account_number,
+      updatedAt: row.updated_at ?? row.created_at ?? "2026-07-30",
+    }));
+
+  return [...phoneItems, ...accountItems]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, limit);
+}
+
 async function getHiddenTargetKeys(phoneKeys: string[], accountKeys: string[]) {
   const hiddenKeys = new Set<string>();
 

@@ -1,6 +1,28 @@
+import type { Metadata } from "next";
+
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { buildPageMetadata } from "@/lib/seo";
 import { getUserLocale } from "@/lib/user-locale";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getUserLocale();
+  const title =
+    locale === "lo" ? "ຄູ່ມືການແຈ້ງ" : locale === "en" ? "Reporting Guide" : "신고 안내";
+  const subtitle =
+    locale === "lo"
+      ? "ການແຈ້ງເບີໂທ ແລະ ເລກບັນຊີສາມາດເຮັດໄດ້ໂດຍບໍ່ຕ້ອງລັອກອິນ ແລະ ລະບົບຈະເກັບຂໍ້ມູນການເຂົ້າໃຊ້ຂັ້ນຕ່ຳເພື່ອກວດສອບ."
+      : locale === "en"
+        ? "Phone and account reports can be submitted without login, and minimal access data is stored for review."
+        : "전화번호와 계좌번호는 로그인 없이 신고할 수 있으며, 내용 검토를 위해 최소한의 접속정보가 저장됩니다.";
+
+  return buildPageMetadata({
+    locale,
+    path: "/report-guide",
+    title: `${title} | Lao Safe`,
+    description: subtitle,
+  });
+}
 
 export default async function ReportGuidePage() {
   const locale = await getUserLocale();

@@ -1,14 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getTypeLabel, getUserDictionary } from "@/lib/i18n";
+import { buildPageMetadata } from "@/lib/seo";
 import { getRecentTargets } from "@/lib/site-repository";
 import { maskAccountDisplay } from "@/lib/site-utils";
 import { getUserLocale } from "@/lib/user-locale";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getUserLocale();
+  const copy = getUserDictionary(locale);
+
+  return buildPageMetadata({
+    locale,
+    path: "/recent",
+    title: `${copy.recent.title} | Lao Safe`,
+    description: copy.recent.subtitle,
+  });
+}
 
 export default async function RecentPage() {
   noStore();

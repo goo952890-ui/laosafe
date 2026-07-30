@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import { headers } from "next/headers";
@@ -9,10 +10,11 @@ import { SearchTabs } from "@/components/SearchTabs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getTypeLabel, getUserDictionary, type UserLocale } from "@/lib/i18n";
+import { buildPageMetadata, truncateSeoText } from "@/lib/seo";
 import { findTarget } from "@/lib/site-repository";
 import { type LookupKind } from "@/lib/site-data";
 import Link from "next/link";
-import { extractQrPayload, getCounts, maskRecipientName } from "@/lib/site-utils";
+import { extractQrPayload, getCounts, maskRecipientName, normalizeAccountLookupKey, normalizePhone } from "@/lib/site-utils";
 import { VotePanel } from "@/components/VotePanel";
 import {
   checkLookupRateLimit,
@@ -236,6 +238,66 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
       <SiteFooter locale={locale} />
     </main>
   );
+}
+
+export async function generateMetadata({ params }: Pick<PageProps, "params">): Promise<Metadata> {
+  const locale = await getUserLocale();
+  const copy = getUserDictionary(locale);
+  const resolved = await params;
+
+  if (resolved.kind !== "phone" && resolved.kind !== "account") {
+    return buildPageMetadata({
+      locale,
+      path: "/",
+      title: copy.meta.title,
+      description: copy.meta.description,
+      noindex: true,
+    });
+  }
+
+  const kind = resolved.kind as LookupKind;
+  const rawQuery = decodeURIComponent(resolved.query);
+  const result = await findTarget(kind, rawQuery);
+  const normalizedPathValue =
+    kind === "phone"
+      ? result.normalized || normalizePhone(rawQuery) || rawQuery
+      : result.normalized || normalizeAccountLookupKey(rawQuery) || rawQuery;
+  const canonicalPath = `/lookup/${kind}/${encodeURIComponent(normalizedPathValue)}`;
+
+  if (result.hidden) {
+    return buildPageMetadata({
+      locale,
+      path: canonicalPath,
+      title: `${copy.lookup.title} | Lao Safe`,
+      description: copy.lookup.hiddenBody,
+      noindex: true,
+    });
+  }
+
+  if (!result.found) {
+    return buildPageMetadata({
+      locale,
+      path: canonicalPath,
+      title: `${lookupTitle(locale, rawQuery)} | Lao Safe`,
+      description: copy.lookup.noReportHelp,
+      noindex: true,
+    });
+  }
+
+  const comments = result.found.comments
+    .filter((comment) => !comment.isVoteOnly && comment.text.trim().length > 0)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const primaryComment = comments[0]?.text?.trim();
+  const description = primaryComment
+    ? truncateSeoText(primaryComment)
+    : copy.lookup.subtitle;
+
+  return buildPageMetadata({
+    locale,
+    path: canonicalPath,
+    title: `${result.found.display} | Lao Safe`,
+    description,
+  });
 }
 
 async function buildQrPreviewSafely(payload: string) {
