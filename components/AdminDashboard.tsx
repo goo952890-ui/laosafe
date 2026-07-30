@@ -385,7 +385,7 @@ function CommentRow({ item, index }: { item: AdminEvaluationRow; index: number }
     >
       <span className="admin-mono">{index + 1}</span>
       <span className="admin-mono">{item.id}</span>
-      <strong>{item.target_display}</strong>
+      <strong className="admin-ellipsis">{item.target_display}</strong>
       <span className={`status-text ${item.evaluation === "spam" ? "danger" : "safe"}`}>
         {item.evaluation === "spam" ? "스팸" : "안전"}
       </span>
