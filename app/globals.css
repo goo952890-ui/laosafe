@@ -1793,7 +1793,6 @@ button:disabled {
   }
 
   .site-header,
-  .board-header,
   .subpage-heading,
   .admin-session-bar,
   .admin-app-content-head {
@@ -1846,6 +1845,10 @@ button:disabled {
     padding: 14px 14px 36px;
   }
 
+  .stats-strip {
+    display: none;
+  }
+
   .site-header,
   .hero-section,
   .board-section,
@@ -1863,5 +1866,64 @@ button:disabled {
 
   .site-nav {
     gap: 16px;
+  }
+
+  .board-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .board-table-head--recent {
+    display: none;
+  }
+
+  .board-row--recent {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number type"
+      "comment comment"
+      "date date";
+    gap: 8px 12px;
+    align-items: start;
+    padding: 18px 0;
+  }
+
+  .board-row--recent > strong {
+    grid-area: number;
+    font-size: 1.05rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .board-row--recent > span:nth-of-type(1) {
+    grid-area: type;
+    justify-self: end;
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--soft);
+    font-size: 0.76rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .board-row--recent > span:nth-of-type(2) {
+    grid-area: comment;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: unset;
+    line-height: 1.5;
+    color: var(--muted-strong);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .board-row--recent > span:nth-of-type(3) {
+    grid-area: date;
+    font-size: 0.82rem;
   }
 }
