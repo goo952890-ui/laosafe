@@ -87,8 +87,9 @@ export function DeletionRequestForm({
         throw new Error(payload.error ?? "삭제 요청을 접수하지 못했습니다.");
       }
 
+      const summary = description.trim() || reason;
       router.push(
-        `/request-delete/complete?type=${encodeURIComponent(targetType)}&target=${encodeURIComponent(target)}`,
+        `/request-delete/complete?type=${encodeURIComponent(targetType)}&target=${encodeURIComponent(target)}&content=${encodeURIComponent(summary)}`,
       );
     } catch (fetchError) {
       setError(

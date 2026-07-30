@@ -198,6 +198,8 @@ export default async function AdminListPage({
                 <span>유형</span>
                 <span>대상</span>
                 <span>{resolved.section === "objections" ? "이의 내용" : "사유"}</span>
+                {resolved.section === "requests" ? <span>상세 설명</span> : null}
+                {resolved.section === "requests" ? <span>연락처</span> : null}
                 {resolved.section === "requests" ? <span>상태</span> : null}
                 <span>등록일</span>
               </div>
@@ -224,6 +226,12 @@ export default async function AdminListPage({
                     <span className="admin-ellipsis">
                       {resolved.section === "objections" ? item.description || "(내용 없음)" : item.reason}
                     </span>
+                    {resolved.section === "requests" ? (
+                      <span className="admin-ellipsis">{item.description || "(상세 설명 없음)"}</span>
+                    ) : null}
+                    {resolved.section === "requests" ? (
+                      <span className="admin-ellipsis">{item.contact || "-"}</span>
+                    ) : null}
                     {resolved.section === "requests" ? (
                       <span className="meta-copy">{requestStatusLabel(item.status)}</span>
                     ) : null}

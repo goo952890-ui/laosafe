@@ -7,12 +7,14 @@ interface PageProps {
   searchParams: Promise<{
     type?: string;
     target?: string;
+    content?: string;
   }>;
 }
 
 export default async function DeleteRequestCompletePage({ searchParams }: PageProps) {
   const resolved = await searchParams;
   const target = resolved.target ? decodeURIComponent(resolved.target) : null;
+  const content = resolved.content ? decodeURIComponent(resolved.content) : null;
   const typeLabel = resolved.type === "account" ? "계좌번호" : "전화번호";
 
   return (
@@ -30,20 +32,24 @@ export default async function DeleteRequestCompletePage({ searchParams }: PagePr
         <div className="request-panel">
           <div className="panel-block">
             <p className="body-copy">
-              운영자가 내용을 검토한 뒤 처리 여부를 결정합니다. 필요한 경우 입력한 연락처로 추가 안내를 드릴 수 있습니다.
+              운영자가 내용을 검토한 뒤 삭제 여부를 판단합니다. 필요한 경우 입력한 연락처로 추가 안내를 드릴 수 있습니다.
             </p>
+            <div className="field-stack">
+              {target ? (
+                <p className="body-copy">
+                  <strong>삭제 요청 번호:</strong> {target}
+                </p>
+              ) : null}
+              {content ? (
+                <p className="body-copy">
+                  <strong>내용:</strong> {content}
+                </p>
+              ) : null}
+            </div>
             <div className="button-row">
               <Link href="/" className="button button-secondary">
-                메인으로 이동
+                메인으로 돌아가기
               </Link>
-              {target ? (
-                <Link
-                  href={`/request-delete/${resolved.type === "account" ? "account" : "phone"}/${encodeURIComponent(target)}`}
-                  className="button"
-                >
-                  다시 작성
-                </Link>
-              ) : null}
             </div>
           </div>
         </div>

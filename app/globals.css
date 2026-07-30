@@ -1534,7 +1534,15 @@ select {
 
 .admin-table-head--requests,
 .admin-table-row--requests {
-  grid-template-columns: 54px 72px minmax(170px, 1fr) minmax(190px, 1.1fr) 96px 110px;
+  grid-template-columns:
+    54px
+    72px
+    minmax(150px, 0.9fr)
+    minmax(160px, 1fr)
+    minmax(220px, 1.5fr)
+    minmax(130px, 0.8fr)
+    96px
+    110px;
 }
 
 .admin-table-head--safe-requests,

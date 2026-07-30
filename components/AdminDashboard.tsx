@@ -297,6 +297,8 @@ export function AdminDashboard({
               <span>유형</span>
               <span>대상</span>
               <span>사유</span>
+              <span>상세 설명</span>
+              <span>연락처</span>
               <span>상태</span>
               <span>등록일</span>
             </div>
@@ -311,7 +313,9 @@ export function AdminDashboard({
                 <span className="admin-mono">{index + 1}</span>
                 <span className="admin-chip">{item.target_type === "phone" ? "전화" : "계좌"}</span>
                 <strong>{item.target_label}</strong>
-                <span>{item.reason}</span>
+                <span className="admin-ellipsis">{item.reason}</span>
+                <span className="admin-ellipsis">{item.description || "(상세 설명 없음)"}</span>
+                <span className="admin-ellipsis">{item.contact || "-"}</span>
                 <span className="meta-copy">{requestStatusLabel(item.status)}</span>
                 <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
               </Link>
