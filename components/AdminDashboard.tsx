@@ -199,7 +199,7 @@ export function AdminDashboard({
                 <span className="admin-mono">{index + 1}</span>
                 <span className="admin-chip">{getAdminTypeLabel(item.kind, item.normalized)}</span>
                 <span className="admin-chip">{item.evaluationLabel}</span>
-                <strong className="admin-break">{item.number}</strong>
+                <strong className="admin-ellipsis">{item.number}</strong>
                 <span className={`status-text ${item.evaluationLabel === "안전" ? "safe" : "danger"}`}>
                   {item.evaluationLabel}
                 </span>
@@ -273,7 +273,7 @@ export function AdminDashboard({
                           ? "QR"
                           : "계좌"}
                     </span>
-                    <strong className="admin-break">{item.target_display}</strong>
+                    <strong className="admin-ellipsis">{item.target_display}</strong>
                     <span className="status-text warning">승인 대기</span>
                     <span className="admin-ellipsis">{item.comment || "(의견 없음)"}</span>
                     <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
@@ -312,7 +312,7 @@ export function AdminDashboard({
               >
                 <span className="admin-mono">{index + 1}</span>
                 <span className="admin-chip">{item.target_type === "phone" ? "전화" : "계좌"}</span>
-                <strong className="admin-break">{item.target_label}</strong>
+                <strong className="admin-ellipsis">{item.target_label}</strong>
                 <span className="admin-ellipsis">{item.reason}</span>
                 <span className="admin-ellipsis">{item.description || "(상세 설명 없음)"}</span>
                 <span className="admin-ellipsis">{item.contact || "-"}</span>
@@ -354,7 +354,7 @@ export function AdminDashboard({
                   >
                     <span className="admin-mono">{index + 1}</span>
                     <span className="admin-chip">{item.target_type === "phone" ? "전화" : "계좌"}</span>
-                    <strong>{item.target_label}</strong>
+                    <strong className="admin-ellipsis">{item.target_label}</strong>
                     <span className="admin-ellipsis">{item.description || "(내용 없음)"}</span>
                     <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
                   </Link>
