@@ -41,15 +41,31 @@ export default async function Home() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: "Lao Safe",
-            url: getSiteUrl(),
-            inLanguage: locale,
-            publisher: {
-              "@type": "Organization",
-              name: "Lao Safe",
-              url: getSiteUrl(),
-            },
+            "@graph": [
+              {
+                "@type": "WebSite",
+                name: "Lao Safe",
+                url: getSiteUrl(),
+                inLanguage: locale,
+                publisher: {
+                  "@type": "Organization",
+                  name: "Lao Safe",
+                  url: getSiteUrl(),
+                },
+              },
+              {
+                "@type": "ItemList",
+                name: copy.home.recentTitle,
+                itemListElement: recentTargets.map(({ target }, index) => ({
+                  "@type": "ListItem",
+                  position: index + 1,
+                  url: `${getSiteUrl()}/lookup/${target.kind === "phone" ? "phone" : "account"}/${encodeURIComponent(
+                    target.kind === "account" ? target.normalized : target.display,
+                  )}`,
+                  name: target.display,
+                })),
+              },
+            ],
           }),
         }}
       />

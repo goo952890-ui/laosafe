@@ -10,7 +10,7 @@ import { SearchTabs } from "@/components/SearchTabs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getTypeLabel, getUserDictionary, type UserLocale } from "@/lib/i18n";
-import { buildPageMetadata, truncateSeoText } from "@/lib/seo";
+import { buildLocalizedUrl, buildPageMetadata, getSiteUrl, truncateSeoText } from "@/lib/seo";
 import { findTarget } from "@/lib/site-repository";
 import { type LookupKind } from "@/lib/site-data";
 import Link from "next/link";
@@ -103,11 +103,77 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
   const primaryComment = orderedComments[0] ?? null;
   const replyComments = orderedComments.slice(1);
   const detailDisplay = result.found?.display ?? result.display;
+  const typeLabel = lookupSeoTypeLabel(locale, kind, rawQuery, result.normalized);
+  const canonicalPath = `/lookup/${kind}/${encodeURIComponent(result.normalized || rawQuery)}`;
+  const pageUrl = buildLocalizedUrl(canonicalPath, locale);
+  const seoDescription = buildLookupSeoDescription({
+    locale,
+    detailDisplay,
+    typeLabel,
+    primaryComment: primaryComment?.text ?? null,
+    found: Boolean(result.found),
+    hidden: result.hidden,
+  });
 
   const counts = result.found ? getCounts(result.found) : { spam: 0, safe: 0, total: 0, spamRatio: 0, safeRatio: 0 };
 
   return (
     <main className="page-shell">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "BreadcrumbList",
+                "@id": `${pageUrl}#breadcrumb`,
+                itemListElement: [
+                  {
+                    "@type": "ListItem",
+                    position: 1,
+                    name: "Lao Safe",
+                    item: getSiteUrl(),
+                  },
+                  {
+                    "@type": "ListItem",
+                    position: 2,
+                    name: detailDisplay,
+                    item: pageUrl,
+                  },
+                ],
+              },
+              {
+                "@type": "WebPage",
+                "@id": `${pageUrl}#webpage`,
+                url: pageUrl,
+                name: `${detailDisplay} | Lao Safe`,
+                description: seoDescription,
+                inLanguage: locale,
+                isPartOf: {
+                  "@type": "WebSite",
+                  name: "Lao Safe",
+                  url: getSiteUrl(),
+                },
+                breadcrumb: {
+                  "@id": `${pageUrl}#breadcrumb`,
+                },
+                mainEntity: {
+                  "@id": `${pageUrl}#target`,
+                },
+              },
+              {
+                "@type": "PropertyValue",
+                "@id": `${pageUrl}#target`,
+                name: typeLabel,
+                value: detailDisplay,
+                identifier: result.normalized || detailDisplay,
+                description: seoDescription,
+              },
+            ],
+          }),
+        }}
+      />
       <SiteHeader locale={locale} />
       <section className="subpage-section lookup-search-shell">
         <SearchTabs locale={locale} />
@@ -263,13 +329,22 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
       ? result.normalized || normalizePhone(rawQuery) || rawQuery
       : result.normalized || normalizeAccountLookupKey(rawQuery) || rawQuery;
   const canonicalPath = `/lookup/${kind}/${encodeURIComponent(normalizedPathValue)}`;
+  const detailDisplay = result.found?.display ?? result.display;
+  const typeLabel = lookupSeoTypeLabel(locale, kind, rawQuery, normalizedPathValue);
 
   if (result.hidden) {
     return buildPageMetadata({
       locale,
       path: canonicalPath,
-      title: `${copy.lookup.title} | Lao Safe`,
-      description: copy.lookup.hiddenBody,
+      title: `${truncateSeoText(detailDisplay, 80)} | Lao Safe`,
+      description: buildLookupSeoDescription({
+        locale,
+        detailDisplay,
+        typeLabel,
+        primaryComment: null,
+        found: false,
+        hidden: true,
+      }),
       noindex: true,
     });
   }
@@ -278,8 +353,15 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
     return buildPageMetadata({
       locale,
       path: canonicalPath,
-      title: `${lookupTitle(locale, rawQuery)} | Lao Safe`,
-      description: copy.lookup.noReportHelp,
+      title: `${truncateSeoText(detailDisplay, 80)} | Lao Safe`,
+      description: buildLookupSeoDescription({
+        locale,
+        detailDisplay,
+        typeLabel,
+        primaryComment: null,
+        found: false,
+        hidden: false,
+      }),
       noindex: true,
     });
   }
@@ -288,14 +370,19 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
     .filter((comment) => !comment.isVoteOnly && comment.text.trim().length > 0)
     .sort((a, b) => Number(a.id) - Number(b.id));
   const primaryComment = comments[0]?.text?.trim();
-  const description = primaryComment
-    ? truncateSeoText(primaryComment)
-    : copy.lookup.subtitle;
+  const description = buildLookupSeoDescription({
+    locale,
+    detailDisplay,
+    typeLabel,
+    primaryComment: primaryComment ?? null,
+    found: true,
+    hidden: false,
+  });
 
   return buildPageMetadata({
     locale,
     path: canonicalPath,
-    title: `${result.found.display} | Lao Safe`,
+    title: `${truncateSeoText(result.found.display, 80)} | Lao Safe`,
     description,
   });
 }
@@ -311,6 +398,55 @@ async function buildQrPreviewSafely(payload: string) {
 function suggestionTypeLabel(locale: UserLocale, kind: LookupKind, normalized: string) {
   if (kind === "phone") return getTypeLabel(locale, "phone");
   return normalized.startsWith("qr:") ? getTypeLabel(locale, "qr") : getTypeLabel(locale, "account");
+}
+
+function lookupSeoTypeLabel(
+  locale: UserLocale,
+  kind: LookupKind,
+  rawQuery: string,
+  normalized: string,
+) {
+  if (kind === "phone") {
+    return getTypeLabel(locale, "phone");
+  }
+
+  if (extractQrPayload(rawQuery) || normalized.startsWith("qr:")) {
+    return getTypeLabel(locale, "qr");
+  }
+
+  return getTypeLabel(locale, "account");
+}
+
+function buildLookupSeoDescription({
+  locale,
+  detailDisplay,
+  typeLabel,
+  primaryComment,
+  found,
+  hidden,
+}: {
+  locale: UserLocale;
+  detailDisplay: string;
+  typeLabel: string;
+  primaryComment: string | null;
+  found: boolean;
+  hidden: boolean;
+}) {
+  const copy = getUserDictionary(locale);
+
+  if (hidden) {
+    return truncateSeoText(`${detailDisplay} ${typeLabel}. ${copy.lookup.hiddenBody}`, 160);
+  }
+
+  if (!found) {
+    return truncateSeoText(`${detailDisplay} ${typeLabel}. ${copy.lookup.noReportHelp}`, 160);
+  }
+
+  if (primaryComment) {
+    return truncateSeoText(`${detailDisplay} ${typeLabel}. ${primaryComment}`, 160);
+  }
+
+  return truncateSeoText(`${detailDisplay} ${typeLabel}. ${copy.lookup.subtitle}`, 160);
 }
 
 function lookupTitle(locale: UserLocale, rawQuery: string) {

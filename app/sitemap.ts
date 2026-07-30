@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   );
 
-  const targetEntries = (await getPublicSitemapTargets(1000)).flatMap((item) =>
+  const targetEntries = (await getPublicSitemapTargets(50_000)).flatMap((item) =>
     USER_LOCALES.map((locale) => ({
       url: buildLocalizedUrl(`/lookup/${item.kind}/${encodeURIComponent(item.normalized)}`, locale),
       lastModified: new Date(item.updatedAt),

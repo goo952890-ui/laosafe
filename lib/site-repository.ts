@@ -662,7 +662,7 @@ export async function getRecentTargets() {
   }
 }
 
-export async function getPublicSitemapTargets(limit = 1000) {
+export async function getPublicSitemapTargets(limit = 50_000) {
   if (!isSupabaseConfigured()) {
     return [...phoneTargets, ...accountTargets].slice(0, limit).map((target) => ({
       kind: target.kind,
@@ -674,7 +674,7 @@ export async function getPublicSitemapTargets(limit = 1000) {
   }
 
   const supabase = getSupabaseAdmin();
-  const [phoneRowsResult, accountRowsResult, hiddenKeys] = await Promise.all([
+  const [phoneRowsResult, accountRowsResult] = await Promise.all([
     supabase
       .from("phone_numbers")
       .select("normalized_number, updated_at, created_at")
@@ -685,11 +685,18 @@ export async function getPublicSitemapTargets(limit = 1000) {
       .select("normalized_account_number, updated_at, created_at")
       .order("created_at", { ascending: false })
       .limit(limit),
-    getHiddenTargetKeys([], []),
   ]);
 
   if (phoneRowsResult.error) throw phoneRowsResult.error;
   if (accountRowsResult.error) throw accountRowsResult.error;
+
+  const phoneKeys = ((phoneRowsResult.data ?? []) as Array<Pick<PhoneRow, "normalized_number">>).map(
+    (row) => row.normalized_number,
+  );
+  const accountKeys = ((accountRowsResult.data ?? []) as Array<Pick<AccountRow, "normalized_account_number">>).map(
+    (row) => row.normalized_account_number,
+  );
+  const hiddenKeys = await getHiddenTargetKeys(phoneKeys, accountKeys);
 
   const phoneItems = ((phoneRowsResult.data ?? []) as Array<Pick<PhoneRow, "normalized_number" | "updated_at" | "created_at">>)
     .filter((row) => !hiddenKeys.has(`phone-${row.normalized_number}`))

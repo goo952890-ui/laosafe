@@ -639,12 +639,29 @@ select {
   min-width: 0;
 }
 
+.subpage-heading--stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .board-title,
 .subpage-title {
   margin: 0;
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.04em;
+}
+
+.subpage-title--lookup {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.lookup-title-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .panel-title {
@@ -1045,7 +1062,8 @@ select {
 
 .qr-preview-copy p {
   margin: 10px 0 0;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .qr-preview-image {

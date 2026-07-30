@@ -5,7 +5,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getTypeLabel, getUserDictionary } from "@/lib/i18n";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, getSiteUrl } from "@/lib/seo";
 import { getRecentTargets } from "@/lib/site-repository";
 import { maskAccountDisplay } from "@/lib/site-utils";
 import { getUserLocale } from "@/lib/user-locale";
@@ -32,6 +32,24 @@ export default async function RecentPage() {
 
   return (
     <main className="page-shell">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            name: copy.recent.title,
+            itemListElement: entries.slice(0, 50).map(({ target }, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: `${getSiteUrl()}/lookup/${target.kind === "phone" ? "phone" : "account"}/${encodeURIComponent(
+                target.kind === "account" ? target.normalized : target.display,
+              )}`,
+              name: target.display,
+            })),
+          }),
+        }}
+      />
       <SiteHeader locale={locale} />
       <section className="subpage-section">
         <div className="subpage-heading">
