@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Lao } from "next/font/google";
+import Script from "next/script";
 import { getSiteUrl } from "@/lib/seo";
 import { getUserLocale } from "@/lib/user-locale";
 import "./globals.css";
@@ -44,7 +45,21 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={notoSansLao.variable}>{children}</body>
+      <body className={notoSansLao.variable}>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-EXF7J7RL0V"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-EXF7J7RL0V');
+          `}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }
