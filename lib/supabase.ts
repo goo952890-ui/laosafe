@@ -8,7 +8,6 @@ function getRequiredEnv(name: string) {
 export function isSupabaseConfigured() {
   return Boolean(
     hasRuntimeEnv("NEXT_PUBLIC_SUPABASE_URL") &&
-      hasRuntimeEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") &&
       hasRuntimeEnv("SUPABASE_SECRET_KEY"),
   );
 }
