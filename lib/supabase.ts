@@ -1,20 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
+import { getRequiredRuntimeEnv, hasRuntimeEnv } from "./runtime-env";
 
 function getRequiredEnv(name: string) {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
+  return getRequiredRuntimeEnv(name);
 }
 
 export function isSupabaseConfigured() {
   return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY &&
-      process.env.SUPABASE_SECRET_KEY,
+    hasRuntimeEnv("NEXT_PUBLIC_SUPABASE_URL") &&
+      hasRuntimeEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") &&
+      hasRuntimeEnv("SUPABASE_SECRET_KEY"),
   );
 }
 
@@ -30,4 +25,3 @@ export function getSupabaseAdmin() {
     },
   );
 }
-

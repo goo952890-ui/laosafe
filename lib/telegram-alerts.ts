@@ -1,3 +1,5 @@
+import { getRuntimeEnv } from "./runtime-env";
+
 type TelegramAlertKind = "report" | "comment" | "deletion";
 type LookupTargetType = "phone" | "account";
 
@@ -9,21 +11,21 @@ type TelegramConfig = {
 function getTelegramConfig(kind: TelegramAlertKind): TelegramConfig {
   if (kind === "report") {
     return {
-      token: process.env.TELEGRAM_REPORT_BOT_TOKEN,
-      chatId: process.env.TELEGRAM_REPORT_CHAT_ID,
+      token: getRuntimeEnv("TELEGRAM_REPORT_BOT_TOKEN"),
+      chatId: getRuntimeEnv("TELEGRAM_REPORT_CHAT_ID"),
     };
   }
 
   if (kind === "comment") {
     return {
-      token: process.env.TELEGRAM_COMMENT_BOT_TOKEN,
-      chatId: process.env.TELEGRAM_COMMENT_CHAT_ID,
+      token: getRuntimeEnv("TELEGRAM_COMMENT_BOT_TOKEN"),
+      chatId: getRuntimeEnv("TELEGRAM_COMMENT_CHAT_ID"),
     };
   }
 
   return {
-    token: process.env.TELEGRAM_DELETION_BOT_TOKEN,
-    chatId: process.env.TELEGRAM_DELETION_CHAT_ID,
+    token: getRuntimeEnv("TELEGRAM_DELETION_BOT_TOKEN"),
+    chatId: getRuntimeEnv("TELEGRAM_DELETION_CHAT_ID"),
   };
 }
 

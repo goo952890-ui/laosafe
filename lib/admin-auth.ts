@@ -1,17 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequiredRuntimeEnv } from "./runtime-env";
 
 const ADMIN_COOKIE_NAME = "laosafe_admin_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 
 function getRequiredEnv(name: "ADMIN_USERNAME" | "ADMIN_PASSWORD" | "ADMIN_SESSION_SECRET") {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required admin environment variable: ${name}`);
-  }
-
-  return value;
+  return getRequiredRuntimeEnv(name);
 }
 
 function base64UrlEncode(input: string) {
