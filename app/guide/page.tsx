@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     locale,
     path: "/guide",
-    title: `${copy.guide.title} | Lao Safe`,
+    title: `${copy.guide.title} | Lao Who`,
     description: copy.guide.intro,
   });
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { USER_LOCALES, type UserLocale } from "@/lib/i18n";
 
-const DEFAULT_SITE_URL = "https://laosafe.com";
+const DEFAULT_SITE_URL = "https://laowho.com";
 
 export function getSiteUrl() {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || DEFAULT_SITE_URL;
@@ -51,7 +51,7 @@ export function buildPageMetadata({
       title,
       description,
       url: buildLocalizedUrl(path, locale),
-      siteName: "Lao Safe",
+      siteName: "Lao Who",
       type: "website",
       locale: mapOgLocale(locale),
     },

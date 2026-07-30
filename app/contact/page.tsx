@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     locale,
     path: "/contact",
-    title: `${copy.contact.title} | Lao Safe`,
+    title: `${copy.contact.title} | Lao Who`,
     description: copy.contact.subtitle,
   });
 }

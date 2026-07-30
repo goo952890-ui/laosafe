@@ -139,7 +139,7 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
                   {
                     "@type": "ListItem",
                     position: 1,
-                    name: "Lao Safe",
+                    name: "Lao Who",
                     item: getSiteUrl(),
                   },
                   {
@@ -159,7 +159,7 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
                 inLanguage: locale,
                 isPartOf: {
                   "@type": "WebSite",
-                  name: "Lao Safe",
+                  name: "Lao Who",
                   url: getSiteUrl(),
                 },
                 breadcrumb: {
@@ -458,12 +458,12 @@ function buildLookupSeoTitle({
   const isQrLookup = kind === "account" && (extractQrPayload(rawQuery) || normalized.startsWith("qr:"));
 
   if (isQrLookup && (!detailDisplay || detailDisplay === normalized || normalized.startsWith("qr:"))) {
-    return `${lookupInfoLabel(locale, "qr")} | Lao Safe`;
+    return `${lookupInfoLabel(locale, "qr")} | Lao Who`;
   }
 
   const number = truncateSeoText(detailDisplay, 60);
   const infoLabel = lookupInfoLabel(locale, kind === "phone" ? "phone" : "account");
-  return `${number} / ${number} ${infoLabel} | Lao Safe`;
+  return `${number} / ${number} ${infoLabel} | Lao Who`;
 }
 
 function lookupInfoLabel(locale: UserLocale, type: "phone" | "account" | "qr") {

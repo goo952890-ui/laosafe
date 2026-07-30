@@ -22,7 +22,7 @@ export function AdminShell({
       <header className="admin-app-topbar">
         <div className="admin-app-brand">
           <Link href="/admin" className="admin-app-brand-link">
-            <span className="admin-app-brand-text">Lao Safe</span>
+            <span className="admin-app-brand-text">Lao Who</span>
           </Link>
           <span className="admin-app-brand-sub">Admin</span>
         </div>

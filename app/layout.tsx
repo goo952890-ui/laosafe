@@ -12,7 +12,7 @@ const notoSansLao = Noto_Sans_Lao({
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: "Lao Safe",
+  title: "Lao Who",
   description: "Phone number, account number, and QR lookup service for Laos.",
   icons: {
     icon: [
@@ -23,14 +23,14 @@ export const metadata: Metadata = {
     apple: "/favicon.png?v=2",
   },
   openGraph: {
-    title: "Lao Safe",
+    title: "Lao Who",
     description: "Phone number, account number, and QR lookup service for Laos.",
-    siteName: "Lao Safe",
+    siteName: "Lao Who",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Lao Safe",
+    title: "Lao Who",
     description: "Phone number, account number, and QR lookup service for Laos.",
   },
 };

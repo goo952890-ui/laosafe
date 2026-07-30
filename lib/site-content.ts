@@ -1,17 +1,17 @@
 import type { UserLocale } from "@/lib/i18n";
 
 export const DEFAULT_TERMS_CONTENTS: Record<UserLocale, string> = {
-  lo: `# ຂໍ້ກຳນົດການໃຊ້ງານ Lao Safe
+  lo: `# ຂໍ້ກຳນົດການໃຊ້ງານ Lao Who
 
 ວັນມີຜົນບັງຄັບໃຊ້: 30 ກໍລະກົດ 2026
 
 ## 1. ຈຸດປະສົງ
-ຂໍ້ກຳນົດນີ້ກຳນົດເງື່ອນໄຂການໃຊ້ບໍລິການ Lao Safe, ສິດ ແລະ ໜ້າທີ່ຂອງຜູ້ໃຊ້ ແລະ ຜູ້ດຳເນີນງານ.
+ຂໍ້ກຳນົດນີ້ກຳນົດເງື່ອນໄຂການໃຊ້ບໍລິການ Lao Who, ສິດ ແລະ ໜ້າທີ່ຂອງຜູ້ໃຊ້ ແລະ ຜູ້ດຳເນີນງານ.
 
 ## 2. ລັກສະນະຂອງບໍລິການ
 1. ບໍລິການນີ້ເປັນບໍລິການຂໍ້ມູນສາທາລະນະສຳລັບຄົ້ນຫາເບີໂທ, ເລກບັນຊີ ແລະ ຂໍ້ມູນຈາກ QR.
 2. ຂໍ້ມູນທີ່ສະແດງໃນບໍລິການອາດມາຈາກຜູ້ໃຊ້ ຫຼື ຜູ້ດູແລ ແລະ ບໍ່ຖືກຮັບປະກັນວ່າຖືກຕ້ອງສົມບູນ.
-3. Lao Safe ບໍ່ໄດ້ຢືນຢັນຢ່າງເປັນທາງການວ່າໝາຍເລກໃດປອດໄພ ຫຼື ເປັນການສໍ້ໂກງ.
+3. Lao Who ບໍ່ໄດ້ຢືນຢັນຢ່າງເປັນທາງການວ່າໝາຍເລກໃດປອດໄພ ຫຼື ເປັນການສໍ້ໂກງ.
 
 ## 3. ຟັງຊັນຫຼັກ
 1. ຄົ້ນຫາເບີໂທ
@@ -55,7 +55,7 @@ export const DEFAULT_TERMS_CONTENTS: Record<UserLocale, string> = {
 ຜູ້ດູແລອາດຈຳກັດ ຫຼື ຢຸດບໍລິການບາງສ່ວນຊົ່ວຄາວຫາກຈຳເປັນເນື່ອງຈາກການບຳລຸງຮັກສາ, ບັນຫາຄວາມປອດໄພ ຫຼື ປັດໃຈພາຍນອກ.
 
 ## 11. ຂໍ້ຈຳກັດຄວາມຮັບຜິດ
-Lao Safe ບໍ່ຮັບປະກັນຄວາມຖືກຕ້ອງ ຫຼື ຄວາມທັນສະໄໝຂອງຂໍ້ມູນທີ່ຜູ້ໃຊ້ລົງ. ການຕັດສິນໃຈຂອງຜູ້ໃຊ້ໂດຍອ້າງອີງຂໍ້ມູນໃນບໍລິການເປັນຄວາມຮັບຜິດຂອງຜູ້ໃຊ້ເອງ.
+Lao Who ບໍ່ຮັບປະກັນຄວາມຖືກຕ້ອງ ຫຼື ຄວາມທັນສະໄໝຂອງຂໍ້ມູນທີ່ຜູ້ໃຊ້ລົງ. ການຕັດສິນໃຈຂອງຜູ້ໃຊ້ໂດຍອ້າງອີງຂໍ້ມູນໃນບໍລິການເປັນຄວາມຮັບຜິດຂອງຜູ້ໃຊ້ເອງ.
 
 ## 12. ຊັບສິນທາງປັນຍາ
 1. ສິດໃນໂຄງສ້າງ, ການອອກແບບ, logo ແລະ ໂຄງສ້າງຖານຂໍ້ມູນເປັນຂອງຜູ້ດຳເນີນງານ.
@@ -64,12 +64,12 @@ Lao Safe ບໍ່ຮັບປະກັນຄວາມຖືກຕ້ອງ ຫ�
 ## 13. ການແກ້ໄຂຂໍ້ກຳນົດ
 ຜູ້ດຳເນີນງານອາດແກ້ໄຂຂໍ້ກຳນົດນີ້ໄດ້ ແລະ ຈະແຈ້ງໃຫ້ຊາບຜ່ານບໍລິການ.
 `,
-  ko: `# Lao Safe 이용약관
+  ko: `# Lao Who 이용약관
 
 시행일: 2026년 7월 30일
 
 ## 제1조 목적
-이 약관은 Lao Safe(이하 "서비스")가 제공하는 전화번호, 계좌번호 및 QR코드 기반 정보 조회·제보 서비스의 이용 조건, 운영 기준, 이용자와 운영자 간 권리·의무 및 책임사항을 정하는 것을 목적으로 합니다.
+이 약관은 Lao Who(이하 "서비스")가 제공하는 전화번호, 계좌번호 및 QR코드 기반 정보 조회·제보 서비스의 이용 조건, 운영 기준, 이용자와 운영자 간 권리·의무 및 책임사항을 정하는 것을 목적으로 합니다.
 
 ## 제2조 서비스의 성격
 1. 서비스는 이용자가 전화번호, 계좌번호 또는 QR코드와 관련된 제보, 의견 및 평가 정보를 열람하거나 등록할 수 있도록 하는 공개형 정보 서비스입니다.
@@ -168,17 +168,17 @@ Lao Safe ບໍ່ຮັບປະກັນຄວາມຖືກຕ້ອງ ຫ�
 ## 제15조 문의
 서비스 관련 문의 또는 권리침해 신고는 운영자가 별도로 안내하는 연락 수단을 통해 접수할 수 있습니다.
 `,
-  en: `# Lao Safe Terms of Use
+  en: `# Lao Who Terms of Use
 
 Effective date: July 30, 2026
 
 ## 1. Purpose
-These terms define the conditions for using Lao Safe, a public lookup and reporting service for phone numbers, account numbers, and QR-based information.
+These terms define the conditions for using Lao Who, a public lookup and reporting service for phone numbers, account numbers, and QR-based information.
 
 ## 2. Nature of the Service
 1. The service allows users to search, review, and submit reports or comments related to phone numbers, account numbers, or QR data.
 2. Information shown in the service may be submitted by users or administrators, and the operator does not guarantee its accuracy, legality, completeness, or timeliness.
-3. Lao Safe does not officially certify that any number or account is safe, fraudulent, or spam.
+3. Lao Who does not officially certify that any number or account is safe, fraudulent, or spam.
 
 ## 3. Main Features
 1. Phone number lookup

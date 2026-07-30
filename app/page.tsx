@@ -44,12 +44,12 @@ export default async function Home() {
             "@graph": [
               {
                 "@type": "WebSite",
-                name: "Lao Safe",
+                name: "Lao Who",
                 url: getSiteUrl(),
                 inLanguage: locale,
                 publisher: {
                   "@type": "Organization",
-                  name: "Lao Safe",
+                  name: "Lao Who",
                   url: getSiteUrl(),
                 },
               },

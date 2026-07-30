@@ -1,11 +1,11 @@
-# Lao Safe Implementation Prompt
+# Lao Who Implementation Prompt
 
-아래 프롬프트를 그대로 `Codex`, `Claude Code`, 또는 유사한 코딩 에이전트에 입력해 `Lao Safe` MVP를 구현한다.
+아래 프롬프트를 그대로 `Codex`, `Claude Code`, 또는 유사한 코딩 에이전트에 입력해 `Lao Who` MVP를 구현한다.
 
 ## Prompt
 
 ```text
-Build a production-oriented MVP web service named "Lao Safe".
+Build a production-oriented MVP web service named "Lao Who".
 
 This service is a public lookup and reporting service for Laos phone numbers and bank account numbers, similar in product shape to Korea's "TheCall", but adapted for Laos and extended to bank account lookup and QR-based account extraction.
 
@@ -36,7 +36,7 @@ Follow the requirements below exactly.
 1. Product Definition
 ====================
 
-Lao Safe allows users to:
+Lao Who allows users to:
 - Search Laos phone numbers
 - Search bank account numbers without choosing a bank first
 - Upload a Laos transfer QR image and extract an account number from it

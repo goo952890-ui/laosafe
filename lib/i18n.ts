@@ -46,7 +46,7 @@ export function getUserDictionary(locale: UserLocale) {
 const dictionaries = {
   lo: {
     meta: {
-      title: "Lao Safe | ຄົ້ນຫາເບີໂທ ແລະ ເລກບັນຊີ",
+      title: "Lao Who | ຄົ້ນຫາເບີໂທ ແລະ ເລກບັນຊີ",
       description:
         "ຄົ້ນຫາເບີໂທ ແລະ ເລກບັນຊີໃນລາວ ແລະ ເບິ່ງການແຈ້ງເບາະແສ ແລະ ຄຳເຫັນຈາກຜູ້ໃຊ້.",
     },
@@ -75,7 +75,7 @@ const dictionaries = {
       recent: "ການແຈ້ງຫຼ້າສຸດ",
     },
     home: {
-      title: "ເບີທີ່ບໍ່ຮູ້ຈັກ ກວດສອບໄດ້ທີ່ Lao Safe",
+      title: "ເບີທີ່ບໍ່ຮູ້ຈັກ ກວດສອບໄດ້ທີ່ Lao Who",
       subtitle: "ຂໍ້ມູນເບີໂທ ແລະ ບັນຊີທີ່ຜູ້ໃຊ້ຮ່ວມກັນສ້າງ",
       totalRegistered: "ໝາຍເລກທີ່ລົງທະບຽນ",
       todayReports: "ການແຈ້ງໃໝ່ມື້ນີ້",
@@ -186,7 +186,7 @@ const dictionaries = {
     },
     terms: {
       title: "ຂໍ້ກຳນົດການໃຊ້ງານ",
-      subtitle: "ກະລຸນາກວດເບິ່ງຂໍ້ກຳນົດກ່ອນນຳໃຊ້ Lao Safe.",
+      subtitle: "ກະລຸນາກວດເບິ່ງຂໍ້ກຳນົດກ່ອນນຳໃຊ້ Lao Who.",
     },
     reportPage: {
       title: "ແຈ້ງເບາະແສ",
@@ -213,7 +213,7 @@ const dictionaries = {
     },
     guide: {
       title: "ຄູ່ມືການໃຊ້",
-      intro: "Lao Safe ແມ່ນບໍລິການຄົ້ນຫາເພື່ອເບິ່ງການແຈ້ງຂອງຜູ້ໃຊ້ກ່ຽວກັບເບີໂທ ແລະ ເລກບັນຊີ.",
+      intro: "Lao Who ແມ່ນບໍລິການຄົ້ນຫາເພື່ອເບິ່ງການແຈ້ງຂອງຜູ້ໃຊ້ກ່ຽວກັບເບີໂທ ແລະ ເລກບັນຊີ.",
       items: [
         ["ຄົ້ນຫາເບີໂທ", "ລະບົບຈະຈັດຮູບແບບຊ່ອງຫວ່າງ, ເຄື່ອງໝາຍຂີດ ແລະ ລະຫັດປະເທດໃຫ້ເປັນເບີດຽວກັນ."],
         ["ຄົ້ນຫາເລກບັນຊີ", "ຄົ້ນຫາດ້ວຍເລກບັນຊີໂດຍບໍ່ຕ້ອງເລືອກທະນາຄານ. ຊື່ຜູ້ຮັບຈະຖືກປິດບາງສ່ວນ."],
@@ -225,7 +225,7 @@ const dictionaries = {
   },
   ko: {
     meta: {
-      title: "Lao Safe | 라오스 전화번호·계좌번호 조회",
+      title: "Lao Who | 라오스 전화번호·계좌번호 조회",
       description: "라오스 전화번호와 계좌번호를 검색하고, 제보와 의견을 확인할 수 있는 조회 서비스입니다.",
     },
     common: {
@@ -253,7 +253,7 @@ const dictionaries = {
       recent: "최근 제보",
     },
     home: {
-      title: "모르는 번호, Lao Safe에서 확인하세요",
+      title: "모르는 번호, Lao Who에서 확인하세요",
       subtitle: "더 많은 사람들이 함께 만드는 안전한 전화·계좌 정보",
       totalRegistered: "등록된 번호",
       todayReports: "오늘 신규 제보",
@@ -364,7 +364,7 @@ const dictionaries = {
     },
     terms: {
       title: "이용약관",
-      subtitle: "Lao Safe 서비스 이용 전 아래 내용을 확인해 주세요.",
+      subtitle: "Lao Who 서비스 이용 전 아래 내용을 확인해 주세요.",
     },
     reportPage: {
       title: "제보하기",
@@ -391,7 +391,7 @@ const dictionaries = {
     },
     guide: {
       title: "이용 안내",
-      intro: "Lao Safe는 전화번호와 계좌번호에 대한 사용자 제보 내역을 빠르게 조회하기 위한 서비스입니다.",
+      intro: "Lao Who는 전화번호와 계좌번호에 대한 사용자 제보 내역을 빠르게 조회하기 위한 서비스입니다.",
       items: [
         ["전화번호 조회", "공백, 하이픈, 국가번호 형식을 정리해 같은 번호로 검색합니다."],
         ["계좌번호 조회", "은행 선택 없이 계좌번호만 입력합니다. 수취인 이름은 일부만 마스킹해 표시합니다."],
@@ -403,7 +403,7 @@ const dictionaries = {
   },
   en: {
     meta: {
-      title: "Lao Safe | Phone and Account Lookup for Laos",
+      title: "Lao Who | Phone and Account Lookup for Laos",
       description: "Search Laos phone numbers and account numbers and review user reports and comments.",
     },
     common: {
@@ -431,7 +431,7 @@ const dictionaries = {
       recent: "Recent Reports",
     },
     home: {
-      title: "Check unknown numbers with Lao Safe",
+      title: "Check unknown numbers with Lao Who",
       subtitle: "Shared phone and account information built by the community",
       totalRegistered: "Registered Numbers",
       todayReports: "New Reports Today",
@@ -542,7 +542,7 @@ const dictionaries = {
     },
     terms: {
       title: "Terms of Use",
-      subtitle: "Please review the following terms before using Lao Safe.",
+      subtitle: "Please review the following terms before using Lao Who.",
     },
     reportPage: {
       title: "Submit Report",
@@ -569,7 +569,7 @@ const dictionaries = {
     },
     guide: {
       title: "How to Use",
-      intro: "Lao Safe is a lookup service for quickly reviewing user-submitted reports on phone numbers and account numbers.",
+      intro: "Lao Who is a lookup service for quickly reviewing user-submitted reports on phone numbers and account numbers.",
       items: [
         ["Phone Lookup", "Spaces, hyphens, and country-code formats are normalized so the same number is searched together."],
         ["Account Lookup", "Search by account number only. Recipient names are partially masked when shown."],

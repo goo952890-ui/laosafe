@@ -23,15 +23,15 @@ async function render(path = "/") {
   );
 }
 
-test("server-renders the Lao Safe home page", async () => {
+test("server-renders the Lao Who home page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Lao Safe \| 라오스 전화번호·계좌번호 조회<\/title>/i);
+  assert.match(html, /<title>Lao Who \| 라오스 전화번호·계좌번호 조회<\/title>/i);
   assert.match(html, /laosafe-logo\.png/);
-  assert.match(html, /alt="Lao Safe"/);
+  assert.match(html, /alt="Lao Who"/);
   assert.match(html, /모르는 번호, 더콜에서 확인하세요/);
   assert.match(html, /전화번호 검색/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/i);
@@ -52,7 +52,7 @@ test("renders guide and admin routes without the starter marker", async () => {
   assert.equal(adminResponse.status, 307);
   assert.equal(adminResponse.headers.get("location"), "http://localhost/admin/login");
   assert.match(page, /SearchTabs/);
-  assert.match(layout, /Lao Safe/);
+  assert.match(layout, /Lao Who/);
   assert.doesNotMatch(layout, /codex-preview|Starter Project|_sites-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

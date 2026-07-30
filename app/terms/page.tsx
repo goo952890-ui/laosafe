@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     locale,
     path: "/terms",
-    title: `${copy.terms.title} | Lao Safe`,
+    title: `${copy.terms.title} | Lao Who`,
     description: copy.terms.subtitle,
   });
 }
