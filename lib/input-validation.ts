@@ -3,7 +3,8 @@ const URL_PATTERN =
 const HTML_PATTERN = /<[^>]+>/;
 
 export const MAX_TARGET_LENGTH = 20;
-export const MAX_QR_PAYLOAD_LENGTH = 200;
+export const MAX_QR_PAYLOAD_LENGTH = 400;
+export const MAX_QR_TARGET_LENGTH = 400;
 
 export function containsUrl(value: string) {
   return URL_PATTERN.test(String(value ?? "").trim());
@@ -20,7 +21,15 @@ export function validateTargetLength(value: string) {
     return "대상 정보가 올바르지 않습니다.";
   }
 
-  if (trimmed.length > MAX_TARGET_LENGTH) {
+  const isQrTarget = trimmed.startsWith("qr:");
+  const qrValue = isQrTarget ? trimmed.slice(3).replace(/\s+/g, "") : trimmed;
+  const limit = isQrTarget ? MAX_QR_TARGET_LENGTH : MAX_TARGET_LENGTH;
+
+  if (qrValue.length > limit) {
+    if (isQrTarget) {
+      return `QR 원문은 최대 ${MAX_QR_TARGET_LENGTH}자까지 등록할 수 있습니다.`;
+    }
+
     return `번호는 최대 ${MAX_TARGET_LENGTH}자까지 등록할 수 있습니다.`;
   }
 
