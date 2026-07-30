@@ -94,7 +94,7 @@ export default async function AdminListPage({
                   <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
                   <span className="admin-chip">{getAdminTypeLabel(item.kind, item.normalized)}</span>
                   <span className="admin-chip">{item.evaluationLabel}</span>
-                  <strong>{item.number}</strong>
+                  <strong className="admin-break">{item.number}</strong>
                   <span className={`status-text ${item.evaluationLabel === "안전" ? "safe" : "danger"}`}>
                     {item.evaluationLabel}
                   </span>
@@ -126,7 +126,7 @@ export default async function AdminListPage({
                 >
                   <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
                   <span className="admin-mono">{item.id}</span>
-                  <strong>{item.target_display}</strong>
+                  <strong className="admin-break">{item.target_display}</strong>
                   <span className={`status-text ${item.evaluation === "spam" ? "danger" : "safe"}`}>
                     {item.evaluation === "spam" ? "스팸" : "안전"}
                   </span>
@@ -164,7 +164,7 @@ export default async function AdminListPage({
                         ? "QR"
                         : "계좌"}
                   </span>
-                  <strong>{item.target_display}</strong>
+                  <strong className="admin-break">{item.target_display}</strong>
                   <span className="status-text warning">승인 대기</span>
                   <span className="admin-ellipsis">{item.comment || "(의견 없음)"}</span>
                   <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
@@ -212,7 +212,7 @@ export default async function AdminListPage({
                   <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
                   <span className="admin-chip">{securitySourceLabel(item.source)}</span>
                   <span className="admin-chip">{securityTargetTypeLabel(item.target_type)}</span>
-                  <strong className="admin-ellipsis">{item.target_value ?? "-"}</strong>
+                  <strong className="admin-break">{item.target_value ?? "-"}</strong>
                   <span className="admin-mono">{item.ip ?? "-"}</span>
                   <span className="admin-ellipsis">{item.detail ?? "-"}</span>
                   <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
@@ -256,7 +256,7 @@ export default async function AdminListPage({
                   >
                     <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
                     <span className="admin-chip">{kind === "phone" ? "전화" : "계좌"}</span>
-                    <strong>{item.target_label}</strong>
+                    <strong className="admin-break">{item.target_label}</strong>
                     <span className="admin-ellipsis">
                       {resolved.section === "objections" ? item.description || "(내용 없음)" : item.reason}
                     </span>
