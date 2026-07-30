@@ -2,6 +2,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
+import { trackLookupSearch } from "@/lib/analytics";
 import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import {
   detectLookupKind,
@@ -67,6 +68,11 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
 
     if (!trimmed) return;
     const kind = detectLookupKind(trimmed);
+    trackLookupSearch({
+      lookupKind: kind,
+      queryLength: trimmed.length,
+      source: "search_input",
+    });
     router.push(`/lookup/${kind}/${encodeURIComponent(trimmed)}`);
   }
 
@@ -94,6 +100,11 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
       }
 
       setScanState({ kind: "success", payload });
+      trackLookupSearch({
+        lookupKind: "qr",
+        queryLength: payload.length,
+        source: "qr_image",
+      });
       router.push(`/lookup/account/${encodeURIComponent(`qr:${payload}`)}`);
     } catch {
       setScanState({

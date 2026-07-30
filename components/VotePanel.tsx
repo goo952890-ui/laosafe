@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { trackVoteSubmit } from "@/lib/analytics";
 import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 
 export function VotePanel({
@@ -56,6 +57,10 @@ export function VotePanel({
         throw new Error(payload.error ?? copy.vote.error);
       }
 
+      trackVoteSubmit({
+        targetType: targetType === "account" && qrPayload ? "qr" : targetType,
+        evaluation,
+      });
       router.replace(pathname);
       router.refresh();
     } catch (voteError) {

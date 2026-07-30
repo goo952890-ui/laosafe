@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { trackCommentSubmit, trackReportSubmit } from "@/lib/analytics";
 import { generateNumericNickname } from "@/lib/evaluation-meta";
 import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import {
@@ -126,6 +127,19 @@ export function EvaluationForm({
 
       if (!response.ok) {
         throw new Error(payload.error ?? copy.form.submitError);
+      }
+
+      const analyticsTargetType =
+        targetType === "account" && qrPayload ? "qr" : targetType;
+
+      if (submissionType === "comment") {
+        trackCommentSubmit({ targetType: analyticsTargetType });
+      } else {
+        trackReportSubmit({
+          targetType: analyticsTargetType,
+          evaluation: selectedEvaluation,
+          status: payload.status === "pending" ? "pending" : "success",
+        });
       }
 
       if (payload.status === "pending") {

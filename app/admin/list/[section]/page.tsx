@@ -81,6 +81,7 @@ export default async function AdminListPage({
                 <span>번호 유형</span>
                 <span>제보 유형</span>
                 <span>번호</span>
+                <span>조회수</span>
                 <span>평가</span>
                 <span>상태</span>
                 <span>등록일</span>
@@ -95,6 +96,7 @@ export default async function AdminListPage({
                   <span className="admin-chip">{getAdminTypeLabel(item.kind, item.normalized)}</span>
                   <span className="admin-chip">{item.evaluationLabel}</span>
                   <strong className="admin-break">{item.number}</strong>
+                  <span className="meta-copy">{item.viewCount.toLocaleString()}</span>
                   <span className={`status-text ${item.evaluationLabel === "안전" ? "safe" : "danger"}`}>
                     {item.evaluationLabel}
                   </span>

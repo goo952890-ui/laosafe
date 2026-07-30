@@ -19,6 +19,7 @@ export function AdminDashboard({
   adminUsername,
   stats,
   targets,
+  siteDailyViews,
   recentComments,
   safeRequests,
   deletionRequests,
@@ -39,6 +40,11 @@ export function AdminDashboard({
     latestCreatedAt: string;
     evaluationLabel: string;
     statusLabel: "표시" | "숨김" | "승인 대기";
+    viewCount: number;
+  }>;
+  siteDailyViews: Array<{
+    date: string;
+    pageViews: number;
   }>;
   recentComments: AdminEvaluationRow[];
   safeRequests: AdminEvaluationRow[];
@@ -186,6 +192,7 @@ export function AdminDashboard({
               <span>번호 유형</span>
               <span>제보 유형</span>
               <span>번호</span>
+              <span>조회수</span>
               <span>평가</span>
               <span>상태</span>
               <span>등록일</span>
@@ -200,6 +207,7 @@ export function AdminDashboard({
                 <span className="admin-chip">{getAdminTypeLabel(item.kind, item.normalized)}</span>
                 <span className="admin-chip">{item.evaluationLabel}</span>
                 <strong className="admin-ellipsis">{item.number}</strong>
+                <span className="meta-copy">{item.viewCount.toLocaleString()}</span>
                 <span className={`status-text ${item.evaluationLabel === "안전" ? "safe" : "danger"}`}>
                   {item.evaluationLabel}
                 </span>
@@ -232,6 +240,32 @@ export function AdminDashboard({
             {recentComments.map((item, index) => (
               <CommentRow item={item} index={index} key={item.id} />
             ))}
+          </div>
+        </section>
+
+        <section className="board-section admin-console-panel">
+          <div className="board-header">
+            <h2 className="board-title">일자별 사이트 PV</h2>
+          </div>
+          <div className="admin-table">
+            {siteDailyViews.length === 0 ? (
+              <div className="empty-state">
+                <p className="body-copy">집계된 PV 데이터가 없습니다.</p>
+              </div>
+            ) : (
+              <>
+                <div className="admin-table-head admin-table-head--daily-views">
+                  <span>날짜</span>
+                  <span>PV</span>
+                </div>
+                {siteDailyViews.map((item) => (
+                  <div key={item.date} className="admin-table-row admin-table-row--daily-views">
+                    <strong>{item.date}</strong>
+                    <span className="meta-copy">{item.pageViews.toLocaleString()}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </section>
 

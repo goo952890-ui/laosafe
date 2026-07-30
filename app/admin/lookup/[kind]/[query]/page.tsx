@@ -37,6 +37,12 @@ export default async function AdminTargetDetailPage({
       }
     >
       <section className="subpage-section admin-console-section">
+        <section className="admin-detail-stats">
+          <article className="admin-detail-stat-card">
+            <span className="admin-stat-label">누적 조회수</span>
+            <strong className="admin-stat-value">{detail.viewStats.totalViews.toLocaleString()}</strong>
+          </article>
+        </section>
         {detail.firstReport ? (
           <article className="primary-report-card">
             <div className="primary-report-label">최초 신고 내용</div>

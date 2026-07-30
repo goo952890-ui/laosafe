@@ -9,6 +9,7 @@ import { EvaluationForm } from "@/components/EvaluationForm";
 import { SearchTabs } from "@/components/SearchTabs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { TargetPageViewTracker } from "@/components/TargetPageViewTracker";
 import { getTypeLabel, getUserDictionary, type UserLocale } from "@/lib/i18n";
 import { buildLocalizedUrl, buildPageMetadata, getSiteUrl, truncateSeoText } from "@/lib/seo";
 import { findTarget } from "@/lib/site-repository";
@@ -126,6 +127,14 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
 
   return (
     <main className="page-shell">
+      {result.found ? (
+        <TargetPageViewTracker
+          kind={kind}
+          normalized={result.normalized}
+          locale={locale}
+          path={canonicalPath}
+        />
+      ) : null}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

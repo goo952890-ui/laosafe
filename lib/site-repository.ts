@@ -22,6 +22,12 @@ import {
   type HomeStats,
 } from "./site-stats";
 import {
+  buildViewTargetKey,
+  getSiteDailyPageViews,
+  getTargetViewCountMap,
+  type TargetViewStats,
+} from "./page-views";
+import {
   extractAccountFromQrPayload,
   extractQrPayload,
   formatAccountDisplay,
@@ -921,6 +927,32 @@ export async function getAdminDashboardData() {
   );
   const targetMetaMap = buildAdminTargetMetaMap(evaluations);
 
+  const targets = [
+    ...((phoneRows.data ?? []) as PhoneRow[]).map((row) => ({
+      kind: "phone" as const,
+      normalized: row.normalized_number,
+      number: formatPhoneDisplay(row.normalized_number),
+      latestCreatedAt: row.created_at ?? row.updated_at ?? "",
+      ...getAdminTargetMeta("phone", row.normalized_number, targetMetaMap),
+    })),
+    ...((accountRows.data ?? []) as AccountRow[]).map((row) => ({
+      kind: "account" as const,
+      normalized: row.normalized_account_number,
+      number: formatAccountDisplay(row.normalized_account_number),
+      latestCreatedAt: row.created_at ?? row.updated_at ?? "",
+      ...getAdminTargetMeta("bank_account", row.normalized_account_number, targetMetaMap),
+    })),
+  ]
+    .sort((a, b) => b.latestCreatedAt.localeCompare(a.latestCreatedAt))
+    .slice(0, 5);
+  const targetViewMap = await getTargetViewCountMap(
+    targets.map((item) => ({
+      targetType: item.kind === "phone" ? "phone" : "bank_account",
+      normalized: item.normalized,
+    })),
+  );
+  const siteDailyViews = await getSiteDailyPageViews(7);
+
   return {
     stats: {
       totalRegistered: homeStats.totalReports,
@@ -929,24 +961,16 @@ export async function getAdminDashboardData() {
       spamTargets: homeStats.spamTargets,
       safeTargets: homeStats.safeTargets,
     },
-    targets: [
-      ...((phoneRows.data ?? []) as PhoneRow[]).map((row) => ({
-        kind: "phone" as const,
-        normalized: row.normalized_number,
-        number: formatPhoneDisplay(row.normalized_number),
-        latestCreatedAt: row.created_at ?? row.updated_at ?? "",
-        ...getAdminTargetMeta("phone", row.normalized_number, targetMetaMap),
-      })),
-      ...((accountRows.data ?? []) as AccountRow[]).map((row) => ({
-        kind: "account" as const,
-        normalized: row.normalized_account_number,
-        number: formatAccountDisplay(row.normalized_account_number),
-        latestCreatedAt: row.created_at ?? row.updated_at ?? "",
-        ...getAdminTargetMeta("bank_account", row.normalized_account_number, targetMetaMap),
-      })),
-    ]
-      .sort((a, b) => b.latestCreatedAt.localeCompare(a.latestCreatedAt))
-      .slice(0, 5),
+    targets: targets.map((item) => {
+      const key = buildViewTargetKey(item.kind === "phone" ? "phone" : "bank_account", item.normalized);
+      const viewStats = targetViewMap.get(key) ?? emptyViewStats();
+
+      return {
+        ...item,
+        viewCount: viewStats.totalViews,
+      };
+    }),
+    siteDailyViews,
     recentComments: evaluations
       .filter((row) => row.comment.trim().length > 0)
       .slice(0, 5),
@@ -1006,11 +1030,25 @@ export async function getAdminListPage(
         ...getAdminTargetMeta("bank_account", row.normalized_account_number, targetMetaMap),
       })),
     ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const targetViewMap = await getTargetViewCountMap(
+      items.map((item) => ({
+        targetType: item.kind === "phone" ? "phone" : "bank_account",
+        normalized: item.normalized,
+      })),
+    );
 
     return {
       title: "등록된 번호",
       totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
-      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize).map((item) => {
+        const key = buildViewTargetKey(item.kind === "phone" ? "phone" : "bank_account", item.normalized);
+        const viewStats = targetViewMap.get(key) ?? emptyViewStats();
+
+        return {
+          ...item,
+          viewCount: viewStats.totalViews,
+        };
+      }),
     };
   }
 
@@ -1108,6 +1146,14 @@ export async function getAdminTargetDetail(kind: LookupKind, rawQuery: string) {
     .filter((row) => row.comment.trim().length > 0)
     .map((row) => ({ ...row, meta: parseEvaluationMeta(row.user_agent) }));
   const firstReport = comments[0] ?? null;
+  const targetViewMap = await getTargetViewCountMap([
+    {
+      targetType,
+      normalized,
+    },
+  ]);
+  const viewStats =
+    targetViewMap.get(buildViewTargetKey(targetType, normalized)) ?? emptyViewStats();
 
   return {
     kind,
@@ -1117,6 +1163,7 @@ export async function getAdminTargetDetail(kind: LookupKind, rawQuery: string) {
     comments: comments.filter((item) => item.id !== firstReport?.id),
     evaluations: rows,
     deletionRequests: (deletionRows ?? []) as AdminDeletionRequestRow[],
+    viewStats,
   };
 }
 
@@ -1163,6 +1210,13 @@ function getAdminTargetMeta(
       statusLabel: "표시",
     }
   );
+}
+
+function emptyViewStats(): TargetViewStats {
+  return {
+    totalViews: 0,
+    lastViewedAt: null,
+  };
 }
 
 function isPendingSafeApprovalRow(row: AdminEvaluationRow) {

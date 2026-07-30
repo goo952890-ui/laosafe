@@ -36,11 +36,11 @@ export function getTypeLabel(locale: UserLocale, type: "phone" | "account" | "qr
     },
   };
 
-  return map[locale][type];
+  return map[normalizeUserLocale(locale)][type];
 }
 
 export function getUserDictionary(locale: UserLocale) {
-  return dictionaries[locale];
+  return dictionaries[normalizeUserLocale(locale)] ?? dictionaries.lo;
 }
 
 const dictionaries = {

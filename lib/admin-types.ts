@@ -44,3 +44,8 @@ export type AdminInquiryRow = {
   message: string;
   created_at: string;
 };
+
+export type AdminTargetViewStats = {
+  totalViews: number;
+  lastViewedAt: string | null;
+};

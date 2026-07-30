@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Lao } from "next/font/google";
 import Script from "next/script";
+import { AnalyticsPageViewTracker } from "@/components/AnalyticsPageViewTracker";
 import { getSiteUrl } from "@/lib/seo";
 import { getUserLocale } from "@/lib/user-locale";
 import "./globals.css";
@@ -55,7 +56,7 @@ export default async function RootLayout({
               window.dataLayer = window.dataLayer || [];
               window.gtag = function(){window.dataLayer.push(arguments);};
               window.gtag('js', new Date());
-              window.gtag('config', 'G-EXF7J7RL0V');
+              window.gtag('config', 'G-EXF7J7RL0V', { send_page_view: false });
 
               var script = document.createElement('script');
               script.async = true;
@@ -64,6 +65,7 @@ export default async function RootLayout({
             })();
           `}
         </Script>
+        <AnalyticsPageViewTracker />
         {children}
       </body>
     </html>

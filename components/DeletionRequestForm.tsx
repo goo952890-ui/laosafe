@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { trackDeleteRequestSubmit } from "@/lib/analytics";
 import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import { validatePlainText, validateTargetLength } from "@/lib/input-validation";
 
@@ -87,6 +88,7 @@ export function DeletionRequestForm({
         throw new Error(payload.error ?? copy.deletion.submitError);
       }
 
+      trackDeleteRequestSubmit({ targetType });
       const summary = description.trim() || reason;
       router.push(
         `/request-delete/complete?type=${encodeURIComponent(targetType)}&target=${encodeURIComponent(target)}&content=${encodeURIComponent(summary)}`,

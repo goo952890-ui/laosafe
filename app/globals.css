@@ -1633,7 +1633,7 @@ select {
 
 .admin-table-head--targets,
 .admin-table-row--targets {
-  grid-template-columns: 54px 88px 88px minmax(200px, 1.1fr) 80px 96px 110px;
+  grid-template-columns: 54px 88px 88px minmax(200px, 1.1fr) 120px 80px 96px 110px;
 }
 
 .admin-table-head--comments,
@@ -1667,6 +1667,11 @@ select {
 .admin-table-head--objections,
 .admin-table-row--objections {
   grid-template-columns: 54px 72px minmax(170px, 1fr) minmax(320px, 2fr) 110px;
+}
+
+.admin-table-head--daily-views,
+.admin-table-row--daily-views {
+  grid-template-columns: minmax(140px, 1fr) 120px;
 }
 
 .admin-table strong {
@@ -1762,6 +1767,20 @@ select {
 
 .page-shell--admin .input {
   padding: 11px 12px;
+}
+
+.admin-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-detail-stat-card {
+  border: 1px solid #dbe2ec;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
 }
 
 .page-shell--admin .button {
