@@ -30,7 +30,7 @@ test("server-renders the Lao Who home page", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Lao Who \| 라오스 전화번호·계좌번호 조회<\/title>/i);
-  assert.match(html, /laosafe-logo\.png/);
+  assert.match(html, /laowho-logo\.png/);
   assert.match(html, /alt="Lao Who"/);
   assert.match(html, /모르는 번호, 더콜에서 확인하세요/);
   assert.match(html, /전화번호 검색/);

@@ -7,7 +7,7 @@ export function SiteHeader({ locale }: { locale: UserLocale }) {
   return (
     <header className="site-header">
       <Link href="/" className="brand-mark">
-        <img src="/laosafe-logo.png?v=2" alt="Lao Who" className="brand-logo-image" />
+        <img src="/laowho-logo.png" alt="Lao Who" className="brand-logo-image" />
       </Link>
       <LanguageSelector locale={locale} />
     </header>
