@@ -22,6 +22,7 @@ export type AdminDeletionRequestRow = {
   contact: string;
   status: "submitted" | "reviewing" | "resolved" | "rejected";
   created_at: string;
+  target_hidden?: boolean;
 };
 
 export type AdminSecurityLogRow = {

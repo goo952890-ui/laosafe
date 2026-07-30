@@ -233,7 +233,7 @@ export default async function AdminListPage({
                       <span className="admin-ellipsis">{item.contact || "-"}</span>
                     ) : null}
                     {resolved.section === "requests" ? (
-                      <span className="meta-copy">{requestStatusLabel(item.status)}</span>
+                      <span className="meta-copy">{requestStatusLabel(item)}</span>
                     ) : null}
                     <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
                   </Link>
@@ -301,7 +301,15 @@ function securityTargetTypeLabel(targetType?: "phone" | "bank_account" | null) {
   return "-";
 }
 
-function requestStatusLabel(status: "submitted" | "reviewing" | "resolved" | "rejected") {
+function requestStatusLabel(item: {
+  status: "submitted" | "reviewing" | "resolved" | "rejected";
+  target_hidden?: boolean;
+}) {
+  if (item.target_hidden) {
+    return "숨김 처리 완료";
+  }
+
+  const status = item.status;
   switch (status) {
     case "reviewing":
       return "검토 중";

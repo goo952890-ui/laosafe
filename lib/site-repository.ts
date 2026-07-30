@@ -768,15 +768,38 @@ export async function getAdminDeletionRequests() {
   }
 
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("deletion_requests")
-    .select("id, target_type, target_label, reason, description, contact, status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data, error }, { data: hiddenRows, error: hiddenError }] = await Promise.all([
+    supabase
+      .from("deletion_requests")
+      .select("id, target_type, target_label, reason, description, contact, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("evaluations")
+      .select("target_type, target_normalized")
+      .in("status", ["hidden", "deleted"]),
+  ]);
 
   if (error) throw error;
+  if (hiddenError) throw hiddenError;
 
-  return (data ?? []) as AdminDeletionRequestRow[];
+  const hiddenKeys = new Set(
+    ((hiddenRows ?? []) as Array<Pick<AdminEvaluationRow, "target_type" | "target_normalized">>).map(
+      (row) => `${row.target_type}-${canonicalTargetNormalized(row)}`,
+    ),
+  );
+
+  return ((data ?? []) as AdminDeletionRequestRow[]).map((row) => {
+    const normalized =
+      row.target_type === "phone"
+        ? normalizePhone(row.target_label)
+        : normalizeAccountLookupKey(row.target_label);
+
+    return {
+      ...row,
+      target_hidden: hiddenKeys.has(`${row.target_type}-${normalized}`),
+    };
+  });
 }
 
 export async function getAdminSecurityLogs(

@@ -62,7 +62,9 @@ async function sendTelegramMessage(kind: TelegramAlertKind, text: string) {
   const { token, chatId } = getTelegramConfig(kind);
 
   if (!token || !chatId) {
-    return;
+    throw new Error(
+      `Missing Telegram config for ${kind}: token=${token ? "set" : "missing"}, chatId=${chatId ? "set" : "missing"}`,
+    );
   }
 
   const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {

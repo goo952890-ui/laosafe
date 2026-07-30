@@ -316,7 +316,7 @@ export function AdminDashboard({
                 <span className="admin-ellipsis">{item.reason}</span>
                 <span className="admin-ellipsis">{item.description || "(상세 설명 없음)"}</span>
                 <span className="admin-ellipsis">{item.contact || "-"}</span>
-                <span className="meta-copy">{requestStatusLabel(item.status)}</span>
+                <span className="meta-copy">{requestStatusLabel(item)}</span>
                 <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
               </Link>
             ))}
@@ -402,7 +402,12 @@ function CommentRow({ item, index }: { item: AdminEvaluationRow; index: number }
   );
 }
 
-function requestStatusLabel(status: AdminDeletionRequestRow["status"]) {
+function requestStatusLabel(request: AdminDeletionRequestRow) {
+  if (request.target_hidden) {
+    return "숨김 처리 완료";
+  }
+
+  const status = request.status;
   switch (status) {
     case "reviewing":
       return "검토 중";
