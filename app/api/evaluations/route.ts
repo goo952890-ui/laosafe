@@ -8,6 +8,7 @@ import {
   notifyTelegramReport,
 } from "@/lib/telegram-alerts";
 import {
+  MAX_REPORT_COMMENT_LENGTH,
   validatePlainText,
   validateQrPayload,
   validateTargetLength,
@@ -111,7 +112,12 @@ export async function POST(request: Request) {
   }
 
   if (hasComment) {
-    const commentError = validatePlainText(payload.comment ?? "", requireComment(payload.submissionType), locale);
+    const commentError = validatePlainText(
+      payload.comment ?? "",
+      requireComment(payload.submissionType),
+      locale,
+      MAX_REPORT_COMMENT_LENGTH,
+    );
     if (commentError) {
       await writeSecurityLog({
         logType: "input_validation_failed",

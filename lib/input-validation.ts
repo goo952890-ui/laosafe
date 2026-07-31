@@ -7,6 +7,7 @@ const HTML_PATTERN = /<[^>]+>/;
 export const MAX_TARGET_LENGTH = 20;
 export const MAX_QR_PAYLOAD_LENGTH = 400;
 export const MAX_QR_TARGET_LENGTH = 400;
+export const MAX_REPORT_COMMENT_LENGTH = 200;
 export const MAX_INQUIRY_NAME_LENGTH = 80;
 export const MAX_INQUIRY_EMAIL_LENGTH = 160;
 export const MAX_INQUIRY_MESSAGE_LENGTH = 2000;
@@ -23,6 +24,7 @@ const messages: Record<
     urlBlocked: string;
     htmlBlocked: string;
     plainRequired: string;
+    plainTooLong: string;
     nameRequired: string;
     nameTooLong: string;
     emailRequired: string;
@@ -40,6 +42,7 @@ const messages: Record<
     urlBlocked: "ມີ URL ຢູ່ໃນຂໍ້ມູນ ຈຶ່ງບໍ່ສາມາດລົງໄດ້.",
     htmlBlocked: "ບໍ່ອະນຸຍາດ HTML.",
     plainRequired: "ກະລຸນາກອກເນື້ອຫາ.",
+    plainTooLong: `ເນື້ອຫາສູງສຸດ ${MAX_REPORT_COMMENT_LENGTH} ຕົວອັກສອນ.`,
     nameRequired: "ກະລຸນາກອກຊື່.",
     nameTooLong: `ຊື່ສູງສຸດ ${MAX_INQUIRY_NAME_LENGTH} ຕົວອັກສອນ.`,
     emailRequired: "ກະລຸນາກອກອີເມວ.",
@@ -56,6 +59,7 @@ const messages: Record<
     urlBlocked: "URL이 포함되어 있어 등록이 불가합니다.",
     htmlBlocked: "HTML 형식은 등록할 수 없습니다.",
     plainRequired: "내용을 입력해 주세요.",
+    plainTooLong: `내용은 최대 ${MAX_REPORT_COMMENT_LENGTH}자까지 입력할 수 있습니다.`,
     nameRequired: "이름을 입력해 주세요.",
     nameTooLong: `이름은 최대 ${MAX_INQUIRY_NAME_LENGTH}자까지 입력할 수 있습니다.`,
     emailRequired: "이메일을 입력해 주세요.",
@@ -72,6 +76,7 @@ const messages: Record<
     urlBlocked: "Registration is not allowed because a URL is included.",
     htmlBlocked: "HTML content is not allowed.",
     plainRequired: "Please enter content.",
+    plainTooLong: `Content can be up to ${MAX_REPORT_COMMENT_LENGTH} characters.`,
     nameRequired: "Please enter your name.",
     nameTooLong: `Name can be up to ${MAX_INQUIRY_NAME_LENGTH} characters.`,
     emailRequired: "Please enter your email.",
@@ -136,12 +141,21 @@ export function validateQrPayload(value: string | null | undefined, locale: User
   return null;
 }
 
-export function validatePlainText(value: string, emptyAllowed = true, locale: UserLocale = "ko") {
+export function validatePlainText(
+  value: string,
+  emptyAllowed = true,
+  locale: UserLocale = "ko",
+  maxLength?: number,
+) {
   const copy = messages[locale];
   const trimmed = String(value ?? "").trim();
 
   if (!trimmed) {
     return emptyAllowed ? null : copy.plainRequired;
+  }
+
+  if (typeof maxLength === "number" && trimmed.length > maxLength) {
+    return copy.plainTooLong;
   }
 
   if (containsUrl(trimmed)) {

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { MAX_REPORT_COMMENT_LENGTH, validatePlainText } from "@/lib/input-validation";
+
 export function AdminCommentForm({
   kind,
   normalized,
@@ -19,6 +21,11 @@ export function AdminCommentForm({
 
   async function submit() {
     if (!comment.trim()) return;
+    const commentError = validatePlainText(comment, false, "ko", MAX_REPORT_COMMENT_LENGTH);
+    if (commentError) {
+      setError(commentError);
+      return;
+    }
     setPending(true);
     setError(null);
     try {
@@ -49,9 +56,11 @@ export function AdminCommentForm({
       <textarea
         className="textarea"
         value={comment}
+        maxLength={MAX_REPORT_COMMENT_LENGTH}
         onChange={(event) => setComment(event.target.value)}
         placeholder="관리자 댓글을 입력하세요."
       />
+      <p className="field-help">최대 200자까지 작성할 수 있습니다.</p>
       <div className="button-row">
         <button className="button" type="button" onClick={submit} disabled={pending}>
           {pending ? "등록 중..." : "관리자 댓글 등록"}

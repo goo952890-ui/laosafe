@@ -1,5 +1,6 @@
 import { requireAdminSession } from "@/lib/admin-auth";
 import { serializeEvaluationMeta } from "@/lib/evaluation-meta";
+import { MAX_REPORT_COMMENT_LENGTH, validatePlainText } from "@/lib/input-validation";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { triggerStoredHomeStatsRefresh } from "@/lib/site-stats";
 import { invalidateSiteRepositoryCaches } from "@/lib/site-repository";
@@ -20,6 +21,11 @@ export async function POST(request: Request) {
 
   if (!payload.targetType || !payload.targetNormalized || !payload.targetDisplay || !payload.comment?.trim()) {
     return Response.json({ error: "관리자 댓글 정보가 올바르지 않습니다." }, { status: 400 });
+  }
+
+  const commentError = validatePlainText(payload.comment, false, "ko", MAX_REPORT_COMMENT_LENGTH);
+  if (commentError) {
+    return Response.json({ error: commentError }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();

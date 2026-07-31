@@ -8,6 +8,7 @@ import { trackCommentSubmit, trackReportSubmit } from "@/lib/analytics";
 import { generateNumericNickname } from "@/lib/evaluation-meta";
 import { getUserDictionary, type UserLocale } from "@/lib/i18n";
 import {
+  MAX_REPORT_COMMENT_LENGTH,
   validatePlainText,
   validateQrPayload,
   validateTargetLength,
@@ -83,7 +84,7 @@ export function EvaluationForm({
     }
 
     if (comment.trim()) {
-      const commentError = validatePlainText(comment, requireComment, locale);
+      const commentError = validatePlainText(comment, requireComment, locale, MAX_REPORT_COMMENT_LENGTH);
       if (commentError) {
         setError(commentError);
         setPending(false);
@@ -237,8 +238,10 @@ export function EvaluationForm({
           className="textarea"
           placeholder={copy.form.commentPlaceholder.replace("{label}", label)}
           value={comment}
+          maxLength={MAX_REPORT_COMMENT_LENGTH}
           onChange={(event) => setComment(event.target.value)}
         />
+        <p className="field-help">최대 200자까지 작성할 수 있습니다.</p>
         <p className="form-note">
           {copy.form.ipNotice}
           <br />

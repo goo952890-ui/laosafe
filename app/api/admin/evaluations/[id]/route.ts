@@ -1,5 +1,6 @@
 import { requireAdminSession } from "@/lib/admin-auth";
 import { parseEvaluationMeta, serializeEvaluationMeta } from "@/lib/evaluation-meta";
+import { MAX_REPORT_COMMENT_LENGTH, validatePlainText } from "@/lib/input-validation";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { triggerStoredHomeStatsRefresh } from "@/lib/site-stats";
 import { invalidateSiteRepositoryCaches } from "@/lib/site-repository";
@@ -17,16 +18,17 @@ export async function PATCH(
   const resolved = await params;
   const payload = (await request.json()) as {
     status?: "visible" | "hidden" | "deleted";
+    comment?: string;
   };
 
-  if (!payload.status) {
-    return Response.json({ error: "변경할 상태가 없습니다." }, { status: 400 });
+  if (!payload.status && typeof payload.comment !== "string") {
+    return Response.json({ error: "변경할 내용이 없습니다." }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();
   const { data: current, error: currentError } = await supabase
     .from("evaluations")
-    .select("user_agent")
+    .select("user_agent, comment")
     .eq("id", Number(resolved.id))
     .maybeSingle();
 
@@ -35,10 +37,19 @@ export async function PATCH(
   }
 
   const meta = parseEvaluationMeta(current?.user_agent);
+  const nextComment =
+    typeof payload.comment === "string" ? payload.comment.trim() : current?.comment ?? "";
+  if (typeof payload.comment === "string") {
+    const commentError = validatePlainText(payload.comment, false, "ko", MAX_REPORT_COMMENT_LENGTH);
+    if (commentError) {
+      return Response.json({ error: commentError }, { status: 400 });
+    }
+  }
   const { error } = await supabase
     .from("evaluations")
     .update({
-      status: payload.status,
+      status: payload.status ?? undefined,
+      comment: typeof payload.comment === "string" ? nextComment : undefined,
       user_agent:
         payload.status === "visible" && meta.safeApprovalPending
           ? serializeEvaluationMeta({

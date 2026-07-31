@@ -1149,11 +1149,26 @@ select {
   margin: 10px 0 0;
   line-height: 1.75;
   color: #232323;
+  white-space: pre-wrap;
 }
 
 .primary-report-body {
   padding: 18px 0 18px;
   font-size: 1.02rem;
+}
+
+.admin-first-report-editor {
+  margin-top: 6px;
+}
+
+.admin-first-report-textarea {
+  min-height: 240px;
+}
+
+.admin-first-report-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .primary-report-label {

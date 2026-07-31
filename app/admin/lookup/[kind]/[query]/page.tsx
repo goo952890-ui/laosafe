@@ -5,6 +5,7 @@ import { AdminShell } from "@/components/AdminShell";
 import { getAdminTargetDetail } from "@/lib/site-repository";
 import { AdminTargetVisibilityButton } from "@/components/AdminTargetVisibilityButton";
 import { AdminCommentsPanel } from "@/components/AdminCommentsPanel";
+import { AdminFirstReportEditor } from "@/components/AdminFirstReportEditor";
 import { parseEvaluationMeta } from "@/lib/evaluation-meta";
 import Link from "next/link";
 
@@ -92,7 +93,10 @@ export default async function AdminTargetDetailPage({
               </div>
               <span className="comment-date">{detail.firstReport.created_at.slice(0, 10)}</span>
             </div>
-            <p className="primary-report-body">{detail.firstReport.comment}</p>
+            <AdminFirstReportEditor
+              evaluationId={detail.firstReport.id}
+              initialComment={detail.firstReport.comment}
+            />
             <p className="meta-copy">
               최초 신고자 IP: {detail.firstReport.encrypted_ip ?? detail.firstReport.ip_hash ?? "미기록"}
             </p>
