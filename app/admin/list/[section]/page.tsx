@@ -121,8 +121,9 @@ export default async function AdminListPage({
                 <span>삭제일</span>
               </div>
               {data.items.map((item, index) => (
-                <div
+                <Link
                   key={item.id}
+                  href={`/admin/deleted/${item.id}`}
                   className="admin-table-row admin-table-row--targets"
                 >
                   <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
@@ -132,7 +133,7 @@ export default async function AdminListPage({
                   <span className="admin-ellipsis">{item.first_comment || "(내용 없음)"}</span>
                   <span className="meta-copy">{item.reported_at?.slice(0, 10) ?? "-"}</span>
                   <span className="meta-copy">{item.deleted_at.slice(0, 10)}</span>
-                </div>
+                </Link>
               ))}
             </>
           ) : resolved.section === "comments" ? (

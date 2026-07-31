@@ -886,6 +886,60 @@ export async function getAdminDeletedTargets() {
   return (data ?? []) as DeletedTargetRow[];
 }
 
+export async function getAdminDeletedTargetDetail(id: number) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("deleted_targets")
+    .select(
+      "id, target_type, target_normalized, target_display, evaluation, first_comment, reported_at, deleted_at, archived_payload",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingTableError(error.message)) {
+      return null;
+    }
+
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const row = data as DeletedTargetRow;
+  const archivedEvaluations = (row.archived_payload?.evaluations ?? [])
+    .filter((item) => (item.comment ?? "").trim().length > 0)
+    .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+  const firstReport =
+    archivedEvaluations[0] ??
+    (row.first_comment
+      ? {
+          comment: row.first_comment,
+          created_at: row.reported_at ?? null,
+          evaluation: row.evaluation ?? undefined,
+          encrypted_ip: null,
+          ip_hash: null,
+          user_agent: null,
+        }
+      : null);
+
+  return {
+    ...row,
+    firstReport,
+    comments: archivedEvaluations.slice(firstReport && archivedEvaluations[0] ? 1 : 0).map((item) => ({
+      ...item,
+      meta: parseEvaluationMeta(item.user_agent),
+    })),
+    deletionRequests: row.archived_payload?.deletionRequests ?? [],
+  };
+}
+
 export async function getAdminDeletionRequests() {
   if (!isSupabaseConfigured()) {
     return [] as AdminDeletionRequestRow[];

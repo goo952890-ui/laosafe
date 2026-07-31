@@ -22,6 +22,45 @@ export type AdminDeletedTargetRow = {
   first_comment: string;
   reported_at: string | null;
   deleted_at: string;
+  archived_payload?: {
+    evaluations?: Array<{
+      id?: number;
+      target_type?: "phone" | "bank_account";
+      target_normalized?: string;
+      target_display?: string;
+      evaluation?: "spam" | "safe";
+      comment?: string;
+      ip_hash?: string | null;
+      encrypted_ip?: string | null;
+      user_agent?: string | null;
+      device_fingerprint?: string | null;
+      created_at?: string;
+      updated_at?: string;
+      status?: "visible" | "hidden" | "deleted";
+    }>;
+    votes?: Array<{
+      id?: number;
+      vote?: "spam" | "safe";
+      ip_hash?: string | null;
+      encrypted_ip?: string | null;
+      created_at?: string;
+      updated_at?: string;
+      target_normalized?: string;
+      target_display?: string;
+    }>;
+    deletionRequests?: Array<{
+      id?: number;
+      reason?: string;
+      description?: string;
+      contact?: string;
+      status?: "submitted" | "reviewing" | "resolved" | "rejected";
+      created_at?: string;
+      updated_at?: string;
+    }>;
+    phoneRow?: Record<string, unknown> | null;
+    accountRow?: Record<string, unknown> | null;
+    qrRows?: Array<Record<string, unknown>>;
+  };
 };
 
 export type AdminDeletionRequestRow = {

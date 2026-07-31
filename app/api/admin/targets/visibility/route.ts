@@ -117,7 +117,13 @@ export async function PATCH(request: Request) {
       return Response.json({ error: error.message }, { status: 500 });
     }
   } else {
-    const [{ data: voteRows, error: voteError }, { data: requestRows, error: requestError }] = await Promise.all([
+    const [
+      { data: voteRows, error: voteError },
+      { data: requestRows, error: requestError },
+      { data: phoneRow, error: phoneError },
+      { data: accountRow, error: accountError },
+      { data: qrRows, error: qrReadError },
+    ] = await Promise.all([
       supabase
         .from("votes")
         .select("id, vote, ip_hash, encrypted_ip, created_at, updated_at, target_normalized, target_display")
@@ -128,6 +134,30 @@ export async function PATCH(request: Request) {
         .select("id, reason, description, contact, status, created_at, updated_at")
         .eq("target_type", targetType)
         .or(`target_label.eq.${canonicalDisplay},target_label.eq.${canonicalNormalized}`),
+      payload.kind === "phone"
+        ? supabase
+            .from("phone_numbers")
+            .select("normalized_number, display_number, created_at, updated_at")
+            .eq("normalized_number", canonicalNormalized)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      payload.kind === "account"
+        ? supabase
+            .from("bank_accounts")
+            .select(
+              "normalized_account_number, display_account_number, bank_name, recipient_name, masked_recipient_name, created_at, updated_at",
+            )
+            .eq("normalized_account_number", canonicalNormalized)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      payload.kind === "account"
+        ? supabase
+            .from("qr_scans")
+            .select("id, qr_payload, extracted_account_number, scan_status, error_code, created_at")
+            .in("extracted_account_number", targetNormalizeds)
+            .order("created_at", { ascending: false })
+            .limit(20)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (voteError) {
@@ -136,6 +166,15 @@ export async function PATCH(request: Request) {
 
     if (requestError) {
       return Response.json({ error: requestError.message }, { status: 500 });
+    }
+    if (phoneError) {
+      return Response.json({ error: phoneError.message }, { status: 500 });
+    }
+    if (accountError) {
+      return Response.json({ error: accountError.message }, { status: 500 });
+    }
+    if (qrReadError) {
+      return Response.json({ error: qrReadError.message }, { status: 500 });
     }
 
     const commentRows = (rows ?? []).filter((row) => row.comment?.trim().length > 0);
@@ -156,6 +195,9 @@ export async function PATCH(request: Request) {
         evaluations: rows ?? [],
         votes: voteRows ?? [],
         deletionRequests: requestRows ?? [],
+        phoneRow: phoneRow ?? null,
+        accountRow: accountRow ?? null,
+        qrRows: qrRows ?? [],
       },
     });
 
