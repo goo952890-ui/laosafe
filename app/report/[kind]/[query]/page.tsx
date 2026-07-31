@@ -2,10 +2,9 @@ import { notFound } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 
 import { EvaluationForm } from "@/components/EvaluationForm";
-import { DeletionRequestForm } from "@/components/DeletionRequestForm";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getTypeLabel, getUserDictionary } from "@/lib/i18n";
+import { getUserDictionary } from "@/lib/i18n";
 import { type LookupKind } from "@/lib/site-data";
 import { hasHiddenTarget } from "@/lib/site-repository";
 import { formatAccountDisplay, formatPhoneDisplay, normalizeAccountLookupKey, normalizePhone } from "@/lib/site-utils";
@@ -52,38 +51,29 @@ export default async function ReportPage({ params }: PageProps) {
         </div>
         <div className="request-panel">
           {hiddenTarget ? (
-            <DeletionRequestForm
-              locale={locale}
-              target={display}
-              targetNormalized={normalized}
-              targetType={kind}
-              title={copy.reportPage.hiddenTitle}
-              intro={copy.reportPage.hiddenIntro}
-              submitLabel={copy.reportPage.hiddenSubmit}
-              defaultReason={copy.reportPage.objectionReason}
-              reasonOptions={copy.reportPage.objectionReasons}
-            />
-          ) : (
-            <EvaluationForm
-              locale={locale}
-              label={copy.common.target}
-              title={copy.form.reportTitle}
-              submitLabel={copy.form.reportSubmit}
-              requireComment
-              allowEvaluationChoice
-              requireSafeApproval
-              safeApprovalNotice={copy.form.safeApproval}
-              showIdentityFields={false}
-              requirePassword={false}
-              submissionType="report"
-              targetType={kind}
-              targetDisplay={display}
-              targetNormalized={normalized}
-              qrPayload={normalized.startsWith("qr:") ? formatAccountDisplay(normalized) : null}
-              redirectPath={`/lookup/${kind}/${encodeURIComponent(normalized)}`}
-              pendingRedirectPath={`/lookup/${kind}/${encodeURIComponent(normalized)}?review=safe`}
-            />
-          )}
+            <div className="result-status-box">
+              <p className="body-copy">미노출된 번호입니다. 새 제보는 관리자 검토 후 반영됩니다.</p>
+            </div>
+          ) : null}
+          <EvaluationForm
+            locale={locale}
+            label={copy.common.target}
+            title={copy.form.reportTitle}
+            submitLabel={copy.form.reportSubmit}
+            requireComment
+            allowEvaluationChoice
+            requireSafeApproval
+            safeApprovalNotice={copy.form.safeApproval}
+            showIdentityFields={false}
+            requirePassword={false}
+            submissionType="report"
+            targetType={kind}
+            targetDisplay={display}
+            targetNormalized={normalized}
+            qrPayload={normalized.startsWith("qr:") ? formatAccountDisplay(normalized) : null}
+            redirectPath={`/lookup/${kind}/${encodeURIComponent(normalized)}`}
+            pendingRedirectPath={`/lookup/${kind}/${encodeURIComponent(normalized)}?review=safe`}
+          />
         </div>
       </section>
       <SiteFooter locale={locale} />

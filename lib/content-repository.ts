@@ -118,3 +118,29 @@ export async function getAdminInquiriesPage(page: number, pageSize = 10) {
     throw error;
   }
 }
+
+export async function getAdminInquiryDetail(id: number) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("contact_inquiries")
+      .select("id, name, email, message, created_at")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return (data ?? null) as AdminInquiryRow | null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (isMissingTableError(message)) {
+      return null;
+    }
+
+    throw error;
+  }
+}

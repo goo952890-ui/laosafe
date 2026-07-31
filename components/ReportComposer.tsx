@@ -155,13 +155,13 @@ export function ReportComposer({
         </div>
       ) : null}
 
-      {hiddenQuery ? (
-        <div className="result-status-box">
-          <p className="body-copy">{copy.reportComposer.hiddenA}</p>
-          <p className="body-copy">{copy.reportComposer.hiddenB}</p>
-        </div>
-      ) : target ? (
+      {target ? (
         <>
+          {hiddenQuery ? (
+            <div className="result-status-box">
+              <p className="body-copy">미노출된 번호입니다. 새 제보는 관리자 검토 후 반영됩니다.</p>
+            </div>
+          ) : null}
           {!isLockedQuery ? (
             <div className="report-target-box">
               <strong>{target.display}</strong>

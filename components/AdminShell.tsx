@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AdminTopSearch } from "@/components/AdminTopSearch";
+
 export function AdminShell({
   title,
   subtitle,
@@ -26,9 +28,7 @@ export function AdminShell({
           </Link>
           <span className="admin-app-brand-sub">Admin</span>
         </div>
-        <div className="admin-app-search">
-          <input className="admin-app-search-input" placeholder="번호, 계좌번호, 의견 검색" readOnly />
-        </div>
+        <AdminTopSearch />
         <div className="admin-app-topbar-actions">
           <Link className="admin-app-topbar-button" href="/">
             사용자 화면
@@ -55,6 +55,12 @@ export function AdminShell({
             </NavItem>
             <NavItem href="/admin/list/comments" active={pathname.startsWith("/admin/list/comments")}>
               최근 의견
+            </NavItem>
+            <NavItem
+              href="/admin/list/hidden-spam-reports"
+              active={pathname.startsWith("/admin/list/hidden-spam-reports")}
+            >
+              미노출 번호 신규 제보
             </NavItem>
             <NavItem
               href="/admin/list/safe-requests"

@@ -197,34 +197,38 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
       <section className="lookup-stack">
         <article className="result-section">
           <div className="subpage-heading">
-            <h1 className="subpage-title">{label}</h1>
+            <h1 className="subpage-title subpage-title--lookup">{label}</h1>
             <p className="section-copy">{copy.lookup.subtitle}</p>
           </div>
           {query.review === "safe" ? (
             <div className="inline-notice">{copy.lookup.safePending}</div>
           ) : null}
 
-          <div className="result-keyline">
-            <strong className="lookup-number">{detailDisplay}</strong>
-            {result.found ? (
-              <Link
-                className="detail-action-link"
-                href={`/request-delete/${kind}/${encodeURIComponent(
-                  kind === "account" ? result.normalized : result.found?.display ?? result.display,
-                )}`}
-              >
-                {copy.common.deleteRequest}
-              </Link>
-            ) : null}
-          </div>
-          {qrPayload && qrPreview ? (
-            <div className="qr-preview-panel">
-              <div className="qr-preview-copy">
-                <h2 className="panel-title">{copy.lookup.qrRaw}</h2>
-                <p className="body-copy">{qrPayload}</p>
+          {!result.hidden ? (
+            <>
+              <div className="result-keyline">
+                <strong className="lookup-number">{detailDisplay}</strong>
+                {result.found ? (
+                  <Link
+                    className="detail-action-link"
+                    href={`/request-delete/${kind}/${encodeURIComponent(
+                      kind === "account" ? result.normalized : result.found?.display ?? result.display,
+                    )}`}
+                  >
+                    {copy.common.deleteRequest}
+                  </Link>
+                ) : null}
               </div>
-              <img src={qrPreview} alt="QR preview" className="qr-preview-image" />
-            </div>
+              {qrPayload && qrPreview ? (
+                <div className="qr-preview-panel">
+                  <div className="qr-preview-copy">
+                    <h2 className="panel-title">{copy.lookup.qrRaw}</h2>
+                    <p className="body-copy">{qrPayload}</p>
+                  </div>
+                  <img src={qrPreview} alt="QR preview" className="qr-preview-image" />
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {result.found ? (
@@ -252,11 +256,11 @@ export default async function LookupPage({ params, searchParams }: PageProps) {
               {replyComments.length > 0 ? <CommentThread locale={locale} comments={replyComments} title={copy.lookup.comments} /> : null}
             </>
           ) : (
-            <div className="result-status-box">
+            <div className={`result-status-box${result.hidden ? " result-status-box--hidden" : ""}`}>
               {result.hidden ? (
                 <>
-                  <p className="body-copy">{copy.lookup.hiddenTitle}</p>
-                  <p className="body-copy">{copy.lookup.hiddenBody}</p>
+                  <p className="result-alert-title">{copy.lookup.hiddenTitle}</p>
+                  {copy.lookup.hiddenBody ? <p className="body-copy">{copy.lookup.hiddenBody}</p> : null}
                 </>
               ) : (
                 <>

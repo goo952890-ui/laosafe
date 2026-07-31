@@ -48,7 +48,7 @@ const dictionaries = {
     meta: {
       title: "Lao Who | ຄົ້ນຫາເບີໂທ ແລະ ເລກບັນຊີ",
       description:
-        "ຄົ້ນຫາເບີໂທ ແລະ ເລກບັນຊີໃນລາວ ແລະ ເບິ່ງການແຈ້ງເບາະແສ ແລະ ຄຳເຫັນຈາກຜູ້ໃຊ້.",
+        "ຄົ້ນຫາເບີໂທ ແລະ ເລກບັນຊີໃນລາວ ແລະ ກວດສອບວ່າເປັນສະແກມຫຼືບໍ່.",
     },
     common: {
       more: "ເບິ່ງເພີ່ມ",
@@ -88,6 +88,7 @@ const dictionaries = {
       },
       searchPlaceholder: "ຕົວຢ່າງ) 2055551234 / 010123456789",
       searchAria: "ເບີໂທ ຫຼື ເລກບັນຊີ",
+      numericOnlyError: "ບໍ່ສາມາດປ້ອນຕົວອັກສອນໄດ້.",
       helper: "ເບີໂທ ແລະ ເລກບັນຊີຄົ້ນຫາໄດ້ໃນຊ່ອງດຽວ, ສ່ວນ QR ຈະເຂົ້າຫາຜົນລັບໂດຍກົງ.",
       qrScanning: "ກຳລັງວິເຄາະ QR...",
       qrSuccess: "ພົບຂໍ້ຄວາມຈາກ QR ແລ້ວ. ກຳລັງເປີດຜົນຄົ້ນຫາ.",
@@ -107,8 +108,8 @@ const dictionaries = {
       qrRaw: "ຂໍ້ຄວາມ QR",
       firstReport: "ເນື້ອຫາການແຈ້ງຄັ້ງທຳອິດ",
       comments: "ຄຳເຫັນ",
-      hiddenTitle: "ໝາຍເລກນີ້ຖືກເຊື່ອງໂດຍຜູ້ດູແລ",
-      hiddenBody: "ໝາຍເລກນີ້ເຄີຍຖືກແຈ້ງ ແຕ່ຖືກຜູ້ດູແລເຊື່ອງໄວ້ ແລະ ບໍ່ສາມາດແຈ້ງເພີ່ມໄດ້.",
+      hiddenTitle: "ໝາຍເລກນີ້ກຳລັງຢູ່ໃນການກວດສອບການສະແດງໂດຍຜູ້ດູແລ ເນື່ອງຈາກມີຄຳເຫັນຫຼາຍຮູບແບບ.",
+      hiddenBody: "",
       noReport: "ຍັງບໍ່ມີການແຈ້ງສຳລັບໝາຍເລກນີ້.",
       noReportHelp: "ຖ້າສົງໄສວ່າເປັນສະແປມ ຫຼື ມີຂໍ້ມູນທີ່ຄວນແບ່ງປັນ ກະລຸນາໄປທີ່ໜ້າແຈ້ງເບາະແສ.",
       didYouMean: "ທ່ານກຳລັງຊອກຫາໝາຍເລກເຫຼົ່ານີ້ບໍ?",
@@ -226,7 +227,7 @@ const dictionaries = {
   ko: {
     meta: {
       title: "Lao Who | 라오스 전화번호·계좌번호 조회",
-      description: "라오스 전화번호와 계좌번호를 검색하고, 제보와 의견을 확인할 수 있는 조회 서비스입니다.",
+      description: "라오스의 전화번호와 계좌번호를 검색하고 스캠인지 확인하세요.",
     },
     common: {
       more: "더보기",
@@ -266,6 +267,7 @@ const dictionaries = {
       },
       searchPlaceholder: "예) 2055551234 / 010123456789",
       searchAria: "전화번호 또는 계좌번호",
+      numericOnlyError: "문자는 입력이 불가능합니다.",
       helper: "번호와 계좌번호는 같은 검색창에서 조회할 수 있고, QR코드 이미지는 바로 계좌 조회로 연결됩니다.",
       qrScanning: "QR코드를 분석하는 중입니다.",
       qrSuccess: "QR코드 텍스트를 확인했습니다. 결과를 조회합니다.",
@@ -285,8 +287,8 @@ const dictionaries = {
       qrRaw: "QR 원문",
       firstReport: "최초 신고 내용",
       comments: "댓글",
-      hiddenTitle: "이 번호는 제보된 번호이나 관리자에 의해 숨김처리된 번호입니다.",
-      hiddenBody: "숨김된 번호는 사용자 화면에서 추가 제보를 등록할 수 없습니다.",
+      hiddenTitle: "다양한 의견 제보로 인해 담당자가 노출 심사중인 번호입니다.",
+      hiddenBody: "",
       noReport: "현재 등록된 제보가 없습니다.",
       noReportHelp: "아직 등록된 이력이 없는 번호입니다. 스팸으로 의심되면 제보 페이지에서 내용을 등록해 주세요.",
       didYouMean: "이 번호를 찾으셨나요?",
@@ -404,7 +406,7 @@ const dictionaries = {
   en: {
     meta: {
       title: "Lao Who | Phone and Account Lookup for Laos",
-      description: "Search Laos phone numbers and account numbers and review user reports and comments.",
+      description: "Search Laos phone numbers and account numbers and check whether they may be scam-related.",
     },
     common: {
       more: "More",
@@ -444,6 +446,7 @@ const dictionaries = {
       },
       searchPlaceholder: "e.g. 2055551234 / 010123456789",
       searchAria: "Phone number or account number",
+      numericOnlyError: "Letters cannot be entered.",
       helper: "Phone numbers and account numbers can be searched in one field. QR images go directly to lookup results.",
       qrScanning: "Scanning QR code...",
       qrSuccess: "QR text found. Opening the result.",
@@ -463,8 +466,8 @@ const dictionaries = {
       qrRaw: "QR Raw Text",
       firstReport: "First Report",
       comments: "Comments",
-      hiddenTitle: "This number has reports but is hidden by the administrator.",
-      hiddenBody: "Hidden numbers cannot receive additional public reports.",
+      hiddenTitle: "This number is under visibility review by the administrator due to mixed reports.",
+      hiddenBody: "",
       noReport: "There are no registered reports for this number.",
       noReportHelp: "If you suspect spam or have helpful information, please use the report page.",
       didYouMean: "Were you looking for one of these numbers?",

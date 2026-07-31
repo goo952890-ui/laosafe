@@ -21,6 +21,7 @@ export function AdminDashboard({
   targets,
   siteDailyViews,
   recentComments,
+  hiddenSpamReports,
   safeRequests,
   deletionRequests,
   objections,
@@ -47,6 +48,7 @@ export function AdminDashboard({
     pageViews: number;
   }>;
   recentComments: AdminEvaluationRow[];
+  hiddenSpamReports: AdminEvaluationRow[];
   safeRequests: AdminEvaluationRow[];
   deletionRequests: AdminDeletionRequestRow[];
   objections: AdminDeletionRequestRow[];
@@ -263,6 +265,55 @@ export function AdminDashboard({
                     <strong>{item.date}</strong>
                     <span className="meta-copy">{item.pageViews.toLocaleString()}</span>
                   </div>
+                ))}
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className="board-section admin-console-panel">
+          <div className="board-header">
+            <h2 className="board-title">미노출 번호 신규 제보</h2>
+            <Link className="board-link" href="/admin/list/hidden-spam-reports">
+              더보기
+            </Link>
+          </div>
+          <div className="admin-table">
+            {hiddenSpamReports.length === 0 ? (
+              <div className="empty-state">
+                <p className="body-copy">접수된 신규 스팸 제보가 없습니다.</p>
+              </div>
+            ) : (
+              <>
+                <div className="admin-table-head admin-table-head--safe-requests">
+                  <span>No</span>
+                  <span>번호 유형</span>
+                  <span>대상</span>
+                  <span>상태</span>
+                  <span>의견</span>
+                  <span>등록일</span>
+                </div>
+                {hiddenSpamReports.map((item, index) => (
+                  <Link
+                    key={item.id}
+                    href={`/admin/lookup/${item.target_type === "phone" ? "phone" : "account"}/${encodeURIComponent(
+                      item.target_type === "phone" ? normalizePhone(item.target_normalized) : item.target_normalized,
+                    )}`}
+                    className="admin-table-row admin-table-row--safe-requests"
+                  >
+                    <span className="admin-mono">{index + 1}</span>
+                    <span className="admin-chip">
+                      {item.target_type === "phone"
+                        ? "전화"
+                        : item.target_normalized.startsWith("qr:")
+                          ? "QR"
+                          : "계좌"}
+                    </span>
+                    <strong className="admin-ellipsis">{item.target_display}</strong>
+                    <span className="status-text warning">미노출 검토</span>
+                    <span className="admin-ellipsis">{item.comment || "(의견 없음)"}</span>
+                    <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
+                  </Link>
                 ))}
               </>
             )}

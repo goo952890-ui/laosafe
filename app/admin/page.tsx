@@ -16,6 +16,7 @@ export default async function AdminPage() {
         targets={dashboard.targets}
         siteDailyViews={dashboard.siteDailyViews}
         recentComments={dashboard.recentComments}
+        hiddenSpamReports={dashboard.hiddenSpamReports}
         safeRequests={dashboard.safeRequests}
         deletionRequests={dashboard.deletionRequests}
         objections={dashboard.objections}

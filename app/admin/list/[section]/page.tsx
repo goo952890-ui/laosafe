@@ -29,6 +29,7 @@ export default async function AdminListPage({
     | "targets"
     | "deleted-targets"
     | "comments"
+    | "hidden-spam-reports"
     | "safe-requests"
     | "requests"
     | "objections"
@@ -39,6 +40,7 @@ export default async function AdminListPage({
     resolved.section !== "targets" &&
     resolved.section !== "deleted-targets" &&
     resolved.section !== "comments" &&
+    resolved.section !== "hidden-spam-reports" &&
     resolved.section !== "safe-requests" &&
     resolved.section !== "requests" &&
     resolved.section !== "objections" &&
@@ -136,7 +138,7 @@ export default async function AdminListPage({
                 </Link>
               ))}
             </>
-          ) : resolved.section === "comments" ? (
+          ) : resolved.section === "comments" || resolved.section === "hidden-spam-reports" ? (
             <>
               <div className="admin-table-head admin-table-head--comments">
                 <span>No</span>
@@ -212,8 +214,9 @@ export default async function AdminListPage({
                 <span>등록일</span>
               </div>
               {inquiriesData?.items.map((item, index) => (
-                <div
+                <Link
                   key={item.id}
+                  href={`/admin/inquiries/${item.id}`}
                   className="admin-table-row admin-table-row--inquiries"
                 >
                   <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
@@ -221,7 +224,7 @@ export default async function AdminListPage({
                   <span className="admin-ellipsis">{item.email}</span>
                   <span className="admin-ellipsis admin-ellipsis--multiline">{item.message}</span>
                   <span className="meta-copy">{item.created_at.slice(0, 10)}</span>
-                </div>
+                </Link>
               ))}
             </>
           ) : resolved.section === "input-failures" || resolved.section === "abnormal-ips" ? (

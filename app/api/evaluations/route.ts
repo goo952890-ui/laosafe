@@ -17,6 +17,7 @@ import {
   extractQrPayload,
   formatAccountDisplay,
   formatPhoneDisplay,
+  getPhoneLookupVariants,
   normalizeAccountLookupKey,
   normalizePhone,
 } from "@/lib/site-utils";
@@ -88,6 +89,12 @@ export async function POST(request: Request) {
       : formatAccountDisplay(normalized);
   const createdAt = new Date().toISOString().slice(0, 16).replace("T", " ");
   const targetType = payload.targetType === "phone" ? "phone" : "bank_account";
+  const requiresSafeApproval =
+    Boolean(payload.requireSafeApproval) && (payload.evaluation ?? "spam") === "safe" && hasComment;
+  const targetNormalizeds =
+    payload.targetType === "phone"
+      ? [...new Set(getPhoneLookupVariants(normalized).map(normalizePhone).filter(Boolean))]
+      : [normalized];
 
   const targetError = validateTargetLength(normalized, locale);
   if (targetError) {
@@ -136,7 +143,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (payload.targetType === "phone") {
+    const { data: hiddenRows, error: hiddenRowsError } = await supabase
+      .from("evaluations")
+      .select("id, user_agent")
+      .eq("target_type", targetType)
+      .in("target_normalized", targetNormalizeds)
+      .eq("status", "hidden");
+
+    if (hiddenRowsError) throw hiddenRowsError;
+
+    const hiddenTargetExists = (hiddenRows ?? []).length > 0;
+    const hiddenTargetSpamReport =
+      hiddenTargetExists && hasComment && (payload.evaluation ?? "spam") === "spam";
+
+    if (!requiresSafeApproval && !hiddenTargetExists && payload.targetType === "phone") {
       const { error } = await supabase.from("phone_numbers").upsert(
         {
           normalized_number: normalized,
@@ -147,7 +167,7 @@ export async function POST(request: Request) {
       );
 
       if (error) throw error;
-    } else {
+    } else if (!requiresSafeApproval && !hiddenTargetExists) {
       const { error } = await supabase.from("bank_accounts").upsert(
         {
           normalized_account_number: normalized,
@@ -199,9 +219,7 @@ export async function POST(request: Request) {
         if (error) throw error;
       }
     } else {
-      const requiresSafeApproval =
-        payload.requireSafeApproval && (payload.evaluation ?? "spam") === "safe";
-      const nextStatus = requiresSafeApproval ? "hidden" : "visible";
+      const nextStatus = requiresSafeApproval || hiddenTargetExists ? "hidden" : "visible";
       const nickname = hasComment && storeNickname
         ? (payload.nickname?.replace(/\D/g, "").slice(0, 5) || "00000").padStart(5, "0")
         : null;
@@ -218,10 +236,11 @@ export async function POST(request: Request) {
         ip_hash: identity,
         encrypted_ip: ip,
         user_agent:
-          nickname || requiresSafeApproval
+          nickname || requiresSafeApproval || hiddenTargetSpamReport
             ? serializeEvaluationMeta({
                 nickname,
                 safeApprovalPending: requiresSafeApproval,
+                hiddenTargetReport: hiddenTargetSpamReport,
               })
             : null,
         device_fingerprint: passwordHash,

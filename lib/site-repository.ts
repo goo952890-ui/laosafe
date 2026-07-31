@@ -387,14 +387,17 @@ export async function findTarget(kind: LookupKind, rawQuery: string) {
         hasHiddenTargetAny(rawQuery, "phone"),
       ]);
 
+      const foundTarget =
+        hiddenTarget || !phone
+          ? null
+          : buildPhoneTarget(phone as PhoneRow, (evaluations ?? []) as EvaluationRow[], voteCounts);
+
       return {
         normalized,
         hidden: hiddenTarget,
-        found: phone
-          ? buildPhoneTarget(phone as PhoneRow, (evaluations ?? []) as EvaluationRow[], voteCounts)
-          : null,
+        found: foundTarget,
         display: phone?.display_number ?? formatPhoneDisplay(normalized),
-        suggestions: phone ? [] : await getLookupSuggestions("phone", normalized),
+        suggestions: foundTarget ? [] : await getLookupSuggestions("phone", normalized),
       };
     }
 
@@ -424,19 +427,22 @@ export async function findTarget(kind: LookupKind, rawQuery: string) {
       hasHiddenTargetAny(rawQuery, "account"),
     ]);
 
-    return {
-      normalized,
-      hidden: hiddenTarget,
-      found: account
-        ? buildAccountTarget(
+    const foundTarget =
+      hiddenTarget || !account
+        ? null
+        : buildAccountTarget(
             account as AccountRow,
             (evaluations ?? []) as EvaluationRow[],
             voteCounts,
             qrPayloadFromInput ?? ((qrRows?.[0] as QrScanRow | undefined)?.qr_payload ?? null),
-          )
-        : null,
+          );
+
+    return {
+      normalized,
+      hidden: hiddenTarget,
+      found: foundTarget,
       display: account?.display_account_number ?? formatAccountDisplay(normalized),
-      suggestions: account ? [] : await getLookupSuggestions("account", normalized),
+      suggestions: foundTarget ? [] : await getLookupSuggestions("account", normalized),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
@@ -1089,6 +1095,7 @@ export async function getAdminDashboardData() {
     recentComments: evaluations
       .filter((row) => row.comment.trim().length > 0)
       .slice(0, 5),
+    hiddenSpamReports: evaluations.filter(isHiddenSpamReportRow).slice(0, 5),
     safeRequests: evaluations.filter(isPendingSafeApprovalRow).slice(0, 5),
     deletionRequests: deletionRequests.slice(0, 5),
     objections: deletionRequests.filter((request) => request.reason.includes("이의")).slice(0, 5),
@@ -1100,6 +1107,7 @@ export async function getAdminListPage(
     | "targets"
     | "deleted-targets"
     | "comments"
+    | "hidden-spam-reports"
     | "safe-requests"
     | "requests"
     | "objections"
@@ -1181,6 +1189,15 @@ export async function getAdminListPage(
     const items = (await getAdminEvaluations()).filter((row) => row.comment.trim().length > 0);
     return {
       title: "최근 의견",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    };
+  }
+
+  if (section === "hidden-spam-reports") {
+    const items = (await getAdminEvaluations()).filter(isHiddenSpamReportRow);
+    return {
+      title: "미노출 번호 신규 제보",
       totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
       items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
     };
@@ -1354,6 +1371,16 @@ function isPendingSafeApprovalRow(row: AdminEvaluationRow) {
   );
 }
 
+function isHiddenSpamReportRow(row: AdminEvaluationRow) {
+  const meta = parseEvaluationMeta(row.user_agent);
+  return (
+    row.comment.trim().length > 0 &&
+    row.status === "hidden" &&
+    row.evaluation === "spam" &&
+    meta.hiddenTargetReport
+  );
+}
+
 export async function hasHiddenTarget(kind: LookupKind, rawQuery: string) {
   if (!isSupabaseConfigured()) return false;
 
@@ -1374,6 +1401,28 @@ export async function hasHiddenTarget(kind: LookupKind, rawQuery: string) {
   return (count ?? 0) > 0;
 }
 
+export async function hasPublicHiddenTarget(kind: LookupKind, rawQuery: string) {
+  if (!isSupabaseConfigured()) return false;
+
+  const supabase = getSupabaseAdmin();
+  const normalized = normalizeForKind(kind, rawQuery);
+  const targetType = kind === "phone" ? "phone" : "bank_account";
+  const phoneVariants = kind === "phone" ? getPhoneLookupVariants(rawQuery) : null;
+
+  const { data, error } = await supabase
+    .from("evaluations")
+    .select(
+      "id, target_type, target_normalized, target_display, evaluation, comment, ip_hash, encrypted_ip, user_agent, device_fingerprint, created_at, status",
+    )
+    .eq("target_type", targetType)
+    .in("target_normalized", phoneVariants ?? [normalized])
+    .eq("status", "hidden");
+
+  if (error) throw error;
+
+  return ((data ?? []) as AdminEvaluationRow[]).some((row) => !isPendingSafeApprovalRow(row));
+}
+
 export async function hasHiddenTargetAny(rawQuery: string, preferredKind?: LookupKind) {
   const checks: LookupKind[] =
     preferredKind === "phone"
@@ -1383,7 +1432,7 @@ export async function hasHiddenTargetAny(rawQuery: string, preferredKind?: Looku
         : ["phone", "account"];
 
   for (const kind of checks) {
-    if (await hasHiddenTarget(kind, rawQuery)) {
+    if (await hasPublicHiddenTarget(kind, rawQuery)) {
       return true;
     }
   }

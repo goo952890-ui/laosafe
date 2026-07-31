@@ -19,6 +19,7 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [scanState, setScanState] = useState<ScanState>({ kind: "idle" });
+  const [inputWarning, setInputWarning] = useState<string | null>(null);
 
   function normalizeSearchInput(value: string) {
     return value.replace(/[^\d]/g, "");
@@ -53,10 +54,15 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
 
   function onSearchPaste(event: React.ClipboardEvent<HTMLInputElement>) {
     const pasted = event.clipboardData.getData("text");
-
-    if (!/^\d+$/.test(pasted)) {
+    if (/\p{L}/u.test(pasted)) {
       event.preventDefault();
+      setInputWarning(copy.home.numericOnlyError);
+      return;
     }
+
+    event.preventDefault();
+    setQuery(normalizeSearchInput(pasted));
+    setInputWarning(null);
   }
 
   function submitQuery(value: string) {
@@ -121,7 +127,12 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
         <input
           className="search-input"
           value={query}
-          onChange={(event) => setQuery(normalizeSearchInput(event.target.value))}
+          onChange={(event) => {
+            const rawValue = event.target.value;
+            const normalized = normalizeSearchInput(rawValue);
+            setQuery(normalized);
+            setInputWarning(/\p{L}/u.test(rawValue) ? copy.home.numericOnlyError : null);
+          }}
           onKeyDown={onSearchKeyDown}
           onPaste={onSearchPaste}
           inputMode="numeric"
@@ -158,6 +169,9 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
       ) : null}
       {scanState.kind === "error" ? (
         <p className="inline-notice inline-notice--warning">{scanState.message}</p>
+      ) : null}
+      {inputWarning ? (
+        <p className="inline-notice inline-notice--warning">{inputWarning}</p>
       ) : null}
       <p className="search-helper-copy">
         {copy.home.helper}
