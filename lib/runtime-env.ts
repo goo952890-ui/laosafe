@@ -2,6 +2,15 @@ import { env as workerEnv } from "cloudflare:workers";
 
 type WorkerEnvRecord = Record<string, unknown>;
 
+const FALLBACK_RUNTIME_ENV: Record<string, string> = {
+  TELEGRAM_REPORT_BOT_TOKEN: "8611098474:AAE1dJmYZwWhczveTMg6mBi80roRba2Qdpw",
+  TELEGRAM_REPORT_CHAT_ID: "8071349104",
+  TELEGRAM_COMMENT_BOT_TOKEN: "8960956476:AAFU4lwcEe5PALonFr6xZS68e4Z6d31heAo",
+  TELEGRAM_COMMENT_CHAT_ID: "8071349104",
+  TELEGRAM_DELETION_BOT_TOKEN: "8478715620:AAF-hNi5u1G77cVfM4o4qVQgiDgDJP4JP4M",
+  TELEGRAM_DELETION_CHAT_ID: "8071349104",
+};
+
 function readWorkerEnv(name: string) {
   const record = workerEnv as WorkerEnvRecord | undefined;
   const value = record?.[name];
@@ -52,6 +61,10 @@ export function getRuntimeEnv(name: string) {
 
   if (name === "ADMIN_USERNAME") {
     return "admin";
+  }
+
+  if (FALLBACK_RUNTIME_ENV[name]) {
+    return FALLBACK_RUNTIME_ENV[name];
   }
 
   return undefined;
