@@ -39,7 +39,7 @@ export function AdminDashboard({
     number: string;
     latestCreatedAt: string;
     evaluationLabel: string;
-    statusLabel: "표시" | "숨김" | "승인 대기";
+    statusLabel: "노출" | "미노출" | "승인 대기";
     viewCount: number;
   }>;
   siteDailyViews: Array<{
@@ -143,7 +143,7 @@ export function AdminDashboard({
               등록된 번호, 최근 의견, 삭제 요청을 한 화면에서 검토하고 상세 페이지로 바로 이동할 수 있습니다.
             </p>
             <p className="body-copy">
-              번호 상세에서는 최초 신고, IP, 댓글, 숨김 상태를 함께 확인하고 관리자 댓글을 직접 남길 수 있습니다.
+              번호 상세에서는 최초 신고, IP, 댓글, 미노출 상태를 함께 확인하고 관리자 댓글을 직접 남길 수 있습니다.
             </p>
             <p className="body-copy">
               계좌 검색에서는 QR 이미지 업로드도 가능하며, QR 원문을 기준으로 등록된 건을 검토할 수 있습니다.
@@ -165,7 +165,7 @@ export function AdminDashboard({
           <strong className="admin-stat-value">{stats.todayRegistered.toLocaleString()}</strong>
         </article>
         <article className="admin-stat-card">
-          <span className="admin-stat-label">숨김</span>
+          <span className="admin-stat-label">미노출</span>
           <strong className="admin-stat-value">{stats.hiddenTargets.toLocaleString()}</strong>
         </article>
         <article className="admin-stat-card is-danger">
@@ -211,7 +211,7 @@ export function AdminDashboard({
                 <span className={`status-text ${item.evaluationLabel === "안전" ? "safe" : "danger"}`}>
                   {item.evaluationLabel}
                 </span>
-                <span className={`status-text ${item.statusLabel === "표시" ? "safe" : item.statusLabel === "승인 대기" ? "warning" : "danger"}`}>
+                <span className={`status-text ${item.statusLabel === "노출" ? "safe" : item.statusLabel === "승인 대기" ? "warning" : "danger"}`}>
                   {item.statusLabel}
                 </span>
                 <span className="meta-copy">{item.latestCreatedAt.slice(0, 10)}</span>
@@ -428,7 +428,7 @@ function CommentRow({ item, index }: { item: AdminEvaluationRow; index: number }
           pendingSafe ? "warning" : item.status === "visible" ? "safe" : "danger"
         }`}
       >
-        {pendingSafe ? "승인 대기" : item.status === "visible" ? "표시" : item.status}
+        {pendingSafe ? "승인 대기" : item.status === "visible" ? "노출" : item.status === "hidden" ? "미노출" : "삭제"}
       </span>
       <span className="admin-ellipsis">{item.comment || "(의견 없음)"}</span>
       <span className="meta-copy">{item.created_at.slice(0, 10)}</span>

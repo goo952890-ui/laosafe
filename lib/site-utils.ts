@@ -65,6 +65,10 @@ export function getPhoneLookupVariants(input: string) {
     variants.add(`8560${normalized}`);
   }
 
+  if (digits.startsWith("0") && digits.length > 1) {
+    variants.add(digits.slice(1));
+  }
+
   if (normalized && normalized.length === 8 && !/^(20|21|30|31|41|51|61|71|81)/.test(normalized)) {
     variants.add(`20${normalized}`);
   }

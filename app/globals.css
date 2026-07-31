@@ -1534,6 +1534,45 @@ select {
   opacity: 0.45;
 }
 
+.button-secondary--success {
+  background: #eef8f0;
+  border-color: rgba(47, 125, 50, 0.28);
+  color: #276229;
+}
+
+.button-secondary--success:hover,
+.button-secondary--success:focus-visible {
+  background: #e4f3e7;
+}
+
+.button-secondary--warning {
+  background: #fff6eb;
+  border-color: rgba(242, 138, 26, 0.3);
+  color: #9a5a16;
+}
+
+.button-secondary--warning:hover,
+.button-secondary--warning:focus-visible {
+  background: #ffefdc;
+}
+
+.button-secondary--danger {
+  background: #fff0ef;
+  border-color: rgba(222, 61, 49, 0.28);
+  color: #bf3b30;
+}
+
+.button-secondary--danger:hover,
+.button-secondary--danger:focus-visible {
+  background: #ffe3e0;
+}
+
+.admin-visibility-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .admin-qr-row {
   display: grid;
   gap: 8px;

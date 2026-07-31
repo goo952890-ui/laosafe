@@ -14,7 +14,8 @@
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "db:migrate-votes": "node scripts/migrate-votes.mjs"
+    "db:migrate-votes": "node scripts/migrate-votes.mjs",
+    "db:setup-deleted-targets": "node scripts/setup-deleted-targets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.9",

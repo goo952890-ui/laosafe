@@ -35,6 +35,21 @@ create table if not exists public.evaluations (
 create index if not exists evaluations_lookup_idx
   on public.evaluations (target_type, target_normalized, status, created_at desc);
 
+create table if not exists public.deleted_targets (
+  id bigint generated always as identity primary key,
+  target_type text not null check (target_type in ('phone', 'bank_account')),
+  target_normalized text not null,
+  target_display text not null,
+  evaluation text check (evaluation in ('spam', 'safe')),
+  first_comment text not null default '',
+  reported_at timestamptz,
+  deleted_at timestamptz not null default now(),
+  archived_payload jsonb not null default '{}'::jsonb
+);
+
+create index if not exists deleted_targets_lookup_idx
+  on public.deleted_targets (target_type, target_normalized, deleted_at desc);
+
 create table if not exists public.votes (
   id bigint generated always as identity primary key,
   target_type text not null check (target_type in ('phone', 'bank_account')),

@@ -22,7 +22,20 @@ export default async function AdminTargetDetailPage({
     decodeURIComponent(resolved.query),
   );
 
-  if (!detail) notFound();
+  if (!detail) {
+    return (
+      <AdminShell
+        title={decodeURIComponent(resolved.query)}
+        subtitle="검색 결과가 없습니다."
+      >
+        <section className="subpage-section admin-console-section">
+          <div className="empty-state">
+            <p className="body-copy">검색 결과가 없습니다.</p>
+          </div>
+        </section>
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell
@@ -32,7 +45,11 @@ export default async function AdminTargetDetailPage({
         <AdminTargetVisibilityButton
           kind={detail.kind}
           normalized={detail.normalized}
-          hidden={detail.evaluations.some((item) => item.status === "hidden" || item.status === "deleted")}
+          status={
+            detail.evaluations.some((item) => item.status === "hidden")
+              ? "hidden"
+              : "visible"
+          }
         />
       }
     >

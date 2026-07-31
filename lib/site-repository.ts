@@ -10,6 +10,7 @@ import {
   type SearchTarget,
 } from "./site-data";
 import type {
+  AdminDeletedTargetRow,
   AdminDeletionRequestRow,
   AdminEvaluationRow,
   AdminSecurityLogRow,
@@ -76,6 +77,7 @@ type VoteRow = {
 };
 
 type DeletionRequestRow = Omit<AdminDeletionRequestRow, "created_at">;
+type DeletedTargetRow = AdminDeletedTargetRow;
 
 const HOME_STATS_TTL_MS = 60_000;
 const RECENT_TARGETS_TTL_MS = 30_000;
@@ -450,6 +452,42 @@ export async function findTarget(kind: LookupKind, rawQuery: string) {
   }
 }
 
+export async function resolveUnifiedLookup(rawQuery: string) {
+  const [phoneResult, accountResult] = await Promise.all([
+    findTarget("phone", rawQuery),
+    findTarget("account", rawQuery),
+  ]);
+
+  const exactMatches: Array<{ kind: LookupKind; normalized: string; display: string }> = [];
+
+  if (phoneResult.found || phoneResult.hidden) {
+    exactMatches.push({
+      kind: "phone",
+      normalized: phoneResult.normalized,
+      display: phoneResult.found?.display ?? phoneResult.display,
+    });
+  }
+
+  if (accountResult.found || accountResult.hidden) {
+    exactMatches.push({
+      kind: "account",
+      normalized: accountResult.normalized,
+      display: accountResult.found?.display ?? accountResult.display,
+    });
+  }
+
+  const suggestionMap = new Map<string, { kind: LookupKind; normalized: string; display: string }>();
+
+  for (const item of [...exactMatches, ...phoneResult.suggestions, ...accountResult.suggestions]) {
+    suggestionMap.set(`${item.kind}-${item.normalized}`, item);
+  }
+
+  return {
+    exactMatches,
+    suggestions: [...suggestionMap.values()],
+  };
+}
+
 async function getLookupSuggestions(kind: LookupKind, normalized: string) {
   if (normalized.length < 5) {
     return [] as Array<{ kind: LookupKind; normalized: string; display: string }>;
@@ -569,7 +607,7 @@ export async function getRecentTargets() {
       supabase
         .from("evaluations")
         .select("target_type, target_normalized")
-        .in("status", ["hidden", "deleted"]),
+        .in("status", ["hidden"]),
     ]);
 
     if (phoneRowsResult.error) throw phoneRowsResult.error;
@@ -742,7 +780,7 @@ async function getHiddenTargetKeys(phoneKeys: string[], accountKeys: string[]) {
         .select("target_type, target_normalized")
         .eq("target_type", "phone")
         .in("target_normalized", phoneKeys)
-        .in("status", ["hidden", "deleted"]),
+        .in("status", ["hidden"]),
     );
   }
 
@@ -753,7 +791,7 @@ async function getHiddenTargetKeys(phoneKeys: string[], accountKeys: string[]) {
         .select("target_type, target_normalized")
         .eq("target_type", "bank_account")
         .in("target_normalized", accountKeys)
-        .in("status", ["hidden", "deleted"]),
+        .in("status", ["hidden"]),
     );
   }
 
@@ -825,6 +863,29 @@ export async function getAdminEvaluations() {
   return (data ?? []) as AdminEvaluationRow[];
 }
 
+export async function getAdminDeletedTargets() {
+  if (!isSupabaseConfigured()) {
+    return [] as DeletedTargetRow[];
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("deleted_targets")
+    .select("id, target_type, target_normalized, target_display, evaluation, first_comment, reported_at, deleted_at")
+    .order("deleted_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    if (isMissingTableError(error.message)) {
+      return [] as DeletedTargetRow[];
+    }
+
+    throw error;
+  }
+
+  return (data ?? []) as DeletedTargetRow[];
+}
+
 export async function getAdminDeletionRequests() {
   if (!isSupabaseConfigured()) {
     return [] as AdminDeletionRequestRow[];
@@ -840,7 +901,7 @@ export async function getAdminDeletionRequests() {
     supabase
       .from("evaluations")
       .select("target_type, target_normalized")
-      .in("status", ["hidden", "deleted"]),
+      .in("status", ["hidden"]),
   ]);
 
   if (error) throw error;
@@ -916,7 +977,7 @@ export async function getAdminDashboardData() {
       ? getSupabaseAdmin()
           .from("evaluations")
           .select("target_type, target_normalized")
-          .in("status", ["hidden", "deleted"])
+          .in("status", ["hidden"])
       : Promise.resolve({ data: [] as Pick<AdminEvaluationRow, "target_type" | "target_normalized">[], error: null }),
   ]);
 
@@ -983,6 +1044,7 @@ export async function getAdminDashboardData() {
 export async function getAdminListPage(
   section:
     | "targets"
+    | "deleted-targets"
     | "comments"
     | "safe-requests"
     | "requests"
@@ -1049,6 +1111,15 @@ export async function getAdminListPage(
           viewCount: viewStats.totalViews,
         };
       }),
+    };
+  }
+
+  if (section === "deleted-targets") {
+    const items = await getAdminDeletedTargets();
+    return {
+      title: "삭제 번호",
+      totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
     };
   }
 
@@ -1170,7 +1241,7 @@ export async function getAdminTargetDetail(kind: LookupKind, rawQuery: string) {
 function buildAdminTargetMetaMap(evaluations: AdminEvaluationRow[]) {
   const map = new Map<
     string,
-    { evaluationLabel: string; statusLabel: "표시" | "숨김" | "승인 대기" }
+    { evaluationLabel: string; statusLabel: "노출" | "미노출" | "승인 대기" }
   >();
 
   const grouped = new Map<string, AdminEvaluationRow[]>();
@@ -1188,11 +1259,11 @@ function buildAdminTargetMetaMap(evaluations: AdminEvaluationRow[]) {
         .sort((a, b) => a.created_at.localeCompare(b.created_at))[0] ?? rows[0];
 
     const pendingSafe = firstReport ? isPendingSafeApprovalRow(firstReport) : false;
-    const hidden = rows.some((row) => row.status === "hidden" || row.status === "deleted");
+    const hidden = rows.some((row) => row.status === "hidden");
 
     map.set(key, {
       evaluationLabel: firstReport?.evaluation === "safe" ? "안전" : "스팸",
-      statusLabel: pendingSafe ? "승인 대기" : hidden ? "숨김" : "표시",
+      statusLabel: pendingSafe ? "승인 대기" : hidden ? "미노출" : "노출",
     });
   }
 
@@ -1202,12 +1273,12 @@ function buildAdminTargetMetaMap(evaluations: AdminEvaluationRow[]) {
 function getAdminTargetMeta(
   targetType: "phone" | "bank_account",
   normalized: string,
-  metaMap: Map<string, { evaluationLabel: string; statusLabel: "표시" | "숨김" | "승인 대기" }>,
+  metaMap: Map<string, { evaluationLabel: string; statusLabel: "노출" | "미노출" | "승인 대기" }>,
 ) {
   return (
     metaMap.get(`${targetType}-${targetType === "phone" ? normalizePhone(normalized) : normalized}`) ?? {
       evaluationLabel: "-",
-      statusLabel: "표시",
+      statusLabel: "노출",
     }
   );
 }
@@ -1242,7 +1313,7 @@ export async function hasHiddenTarget(kind: LookupKind, rawQuery: string) {
     .select("id", { count: "exact", head: true })
     .eq("target_type", targetType)
     .in("target_normalized", phoneVariants ?? [normalized])
-    .in("status", ["hidden", "deleted"]);
+    .in("status", ["hidden"]);
 
   if (error) throw error;
 

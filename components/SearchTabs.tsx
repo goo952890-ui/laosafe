@@ -4,10 +4,6 @@ import { useRef, useState } from "react";
 
 import { trackLookupSearch } from "@/lib/analytics";
 import { getUserDictionary, type UserLocale } from "@/lib/i18n";
-import {
-  detectLookupKind,
-  formatAccountDisplay,
-} from "@/lib/site-utils";
 import { scanQrPayloadFromFile } from "@/lib/qr-scan-client";
 
 type ScanState =
@@ -67,13 +63,12 @@ export function SearchTabs({ locale }: { locale: UserLocale }) {
     const trimmed = normalizeSearchInput(value);
 
     if (!trimmed) return;
-    const kind = detectLookupKind(trimmed);
     trackLookupSearch({
-      lookupKind: kind,
+      lookupKind: "unified",
       queryLength: trimmed.length,
       source: "search_input",
     });
-    router.push(`/lookup/${kind}/${encodeURIComponent(trimmed)}`);
+    router.push(`/lookup/search/${encodeURIComponent(trimmed)}`);
   }
 
   async function onFileChange(file: File | null) {

@@ -27,6 +27,7 @@ export default async function AdminListPage({
   const query = await searchParams;
   const listSection = resolved.section as
     | "targets"
+    | "deleted-targets"
     | "comments"
     | "safe-requests"
     | "requests"
@@ -36,6 +37,7 @@ export default async function AdminListPage({
 
   if (
     resolved.section !== "targets" &&
+    resolved.section !== "deleted-targets" &&
     resolved.section !== "comments" &&
     resolved.section !== "safe-requests" &&
     resolved.section !== "requests" &&
@@ -100,11 +102,37 @@ export default async function AdminListPage({
                   <span className={`status-text ${item.evaluationLabel === "안전" ? "safe" : "danger"}`}>
                     {item.evaluationLabel}
                   </span>
-                  <span className={`status-text ${item.statusLabel === "표시" ? "safe" : item.statusLabel === "승인 대기" ? "warning" : "danger"}`}>
+                  <span className={`status-text ${item.statusLabel === "노출" ? "safe" : item.statusLabel === "승인 대기" ? "warning" : "danger"}`}>
                     {item.statusLabel}
                   </span>
                   <span className="meta-copy">{item.createdAt.slice(0, 10)}</span>
                 </Link>
+              ))}
+            </>
+          ) : resolved.section === "deleted-targets" ? (
+            <>
+              <div className="admin-table-head admin-table-head--targets">
+                <span>No</span>
+                <span>번호 유형</span>
+                <span>제보 유형</span>
+                <span>번호</span>
+                <span>최초 내용</span>
+                <span>최초 등록일</span>
+                <span>삭제일</span>
+              </div>
+              {data.items.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="admin-table-row admin-table-row--targets"
+                >
+                  <span className="admin-mono">{(page - 1) * 10 + index + 1}</span>
+                  <span className="admin-chip">{item.target_type === "phone" ? "전화" : item.target_normalized.startsWith("qr:") ? "QR" : "계좌"}</span>
+                  <span className="admin-chip">{item.evaluation === "safe" ? "안전" : item.evaluation === "spam" ? "스팸" : "-"}</span>
+                  <strong className="admin-ellipsis">{item.target_display}</strong>
+                  <span className="admin-ellipsis">{item.first_comment || "(내용 없음)"}</span>
+                  <span className="meta-copy">{item.reported_at?.slice(0, 10) ?? "-"}</span>
+                  <span className="meta-copy">{item.deleted_at.slice(0, 10)}</span>
+                </div>
               ))}
             </>
           ) : resolved.section === "comments" ? (
@@ -133,7 +161,7 @@ export default async function AdminListPage({
                     {item.evaluation === "spam" ? "스팸" : "안전"}
                   </span>
                   <span className={`status-text ${isPendingSafeApproval(item) ? "warning" : item.status === "visible" ? "safe" : "danger"}`}>
-                    {isPendingSafeApproval(item) ? "승인 대기" : item.status === "visible" ? "표시" : item.status}
+                    {isPendingSafeApproval(item) ? "승인 대기" : item.status === "visible" ? "노출" : item.status === "hidden" ? "미노출" : "삭제"}
                   </span>
                   <span className="admin-ellipsis">{item.comment || "(의견 없음)"}</span>
                   <span className="meta-copy">{item.created_at.slice(0, 10)}</span>

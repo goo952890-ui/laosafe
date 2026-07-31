@@ -6,7 +6,7 @@ declare global {
 }
 
 type LookupSearchEvent = {
-  lookupKind: "phone" | "account" | "qr";
+  lookupKind: "phone" | "account" | "qr" | "unified";
   queryLength: number;
   source: "search_input" | "qr_image";
 };

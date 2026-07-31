@@ -13,6 +13,17 @@ export type AdminEvaluationRow = {
   status: "visible" | "hidden" | "deleted";
 };
 
+export type AdminDeletedTargetRow = {
+  id: number;
+  target_type: "phone" | "bank_account";
+  target_normalized: string;
+  target_display: string;
+  evaluation: "spam" | "safe" | null;
+  first_comment: string;
+  reported_at: string | null;
+  deleted_at: string;
+};
+
 export type AdminDeletionRequestRow = {
   id: number;
   target_type: "phone" | "bank_account";

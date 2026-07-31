@@ -50,6 +50,9 @@ export function AdminShell({
             <NavItem href="/admin/list/targets" active={pathname.startsWith("/admin/list/targets")}>
               등록된 번호
             </NavItem>
+            <NavItem href="/admin/list/deleted-targets" active={pathname.startsWith("/admin/list/deleted-targets")}>
+              삭제 번호
+            </NavItem>
             <NavItem href="/admin/list/comments" active={pathname.startsWith("/admin/list/comments")}>
               최근 의견
             </NavItem>
@@ -95,7 +98,7 @@ export function AdminShell({
 
           <div className="admin-sidebar-group">
           <div className="admin-sidebar-guide">
-              등록된 번호, 안전번호 요청, 의견, 삭제 요청, 문의 내용을 이 화면에서 검토하고 숨김 여부를 관리합니다.
+              등록된 번호, 안전번호 요청, 의견, 삭제 요청, 문의 내용을 이 화면에서 검토하고 노출 여부를 관리합니다.
           </div>
           </div>
         </aside>
